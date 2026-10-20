@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -170,13 +171,47 @@ def v7_missing_section():
 
 
 def v8_ledger_pending():
-    mutate_text(
-        "plan/00-README总览.md",
-        "| 方法论装订（AGENTS + 布局门 + plan/00 顶部行） | `ai-tool-project-sprint` 硬约束③ | 纯本地脚本 | `python tools/check_sprint_layout.py` 全绿且 10 组变异全红 | ✅ M0 |",
-        "| 方法论装订（AGENTS + 布局门 + plan/00 顶部行） | `ai-tool-project-sprint` 硬约束③ | 纯本地脚本 | `python tools/check_sprint_layout.py` 全绿且 10 组变异全红 | ⬜ 待 M0 |",
-        "LAYOUT.LEDGER",
-        "V8 台账 ✅ 行改 ⬜ 待 M0",
-    )
+    """台账行变异：**动态选取**一条已 ✅ 的行（写死整行文本会随文案改动失效→静默 SKIP）。
+
+    判别（SKILL 第十一形态）："这条变异找的靶子，在项目当前进度下还存在吗？"
+    写死整行文案时，改一个字靶子就消失；动态按"状态格形态"选取则与文案解耦。
+    """
+    rel = "plan/00-README总览.md"
+    original = _bytes(rel)
+    lines = original.decode("utf-8").split("\n")
+    target = None
+    for index, line in enumerate(lines):
+        if not line.startswith("|"):
+            continue
+        cells = line.split("|")
+        if len(cells) < 3:
+            continue
+        status = cells[-2].strip()
+        match = re.fullmatch(r"✅\s*M(\d+)", status)
+        if match:
+            target = (index, len(cells) - 2, int(match.group(1)))
+            break
+    if target is None:
+        raise NothingToMutate("台账里没有任何『✅ M<k>』状态格（项目还没完成过里程碑）")
+
+    index, cell_index, milestone = target
+    cells = lines[index].split("|")
+    cells[cell_index] = " ⬜ 待 M%d " % milestone
+    lines[index] = "|".join(cells)
+    mutated = "\n".join(lines)
+    assert mutated != original.decode("utf-8"), "替换后文本未变化（变异是 no-op）"
+    try:
+        _write_raw(rel, mutated)
+        assert _bytes(rel) != original, "写回后字节未变化（变异是 no-op）"
+        code, output = _gate()
+        if code == 0:
+            results.append(("V8 台账 ✅ 行改 ⬜", "FAIL(未变红)", "台账行变异后门仍绿"))
+            return
+        line = next((l for l in output.split("\n") if l.startswith("FAIL") and "LAYOUT.LEDGER" in l), "")
+        results.append(("V8 台账 ✅ 行改 ⬜", "PASS" if line else "FAIL(红错判据)", line.strip() or "未出现 LAYOUT.LEDGER 的 FAIL"))
+    finally:
+        _write_raw(rel, original.decode("utf-8"))
+        assert _bytes(rel) == original, "还原后字节不一致"
 
 
 def v9_documented_tool_missing():
@@ -293,6 +328,14 @@ LAYOUT_CASES = [
 
 DESENSE_CASES = [d1_drive_path, d2_msys_path, d3_username, d4_proxy]
 
+#: 允许 SKIP 的用例（发布留档在 M6 前结构上不可能存在）。
+#: 其余任何 SKIP 都算"变异靶子过期"——静默 SKIP 会让假门伪装成绿（SKILL 第十一形态）。
+ALLOWED_SKIPS = {
+    "v11_release_section_removed",
+    "v12_release_two_columns",
+    "v13_release_doc_missing",
+}
+
 
 def main() -> int:
     if len(sys.argv) > 1:
@@ -334,14 +377,26 @@ def main() -> int:
 
     for name, status, detail in results:
         sys.stdout.write("%-22s %-16s %s\n" % (status, name, detail))
+    unexpected_skips = []
     for name, reason in skips:
-        sys.stdout.write("%-22s %-16s %s\n" % ("SKIP", name, reason))
+        if name in ALLOWED_SKIPS:
+            sys.stdout.write("%-22s %-16s %s\n" % ("SKIP", name, reason))
+        else:
+            unexpected_skips.append(name)
+            sys.stdout.write("%-22s %-16s %s\n" % ("FAIL(靶子过期)", name, reason))
 
-    bad = [r for r in results if not r[1].startswith("PASS")]
+    bad = [r for r in results if not r[1].startswith("PASS")] + [
+        (name, "FAIL(靶子过期)", "") for name in unexpected_skips
+    ]
     sys.stdout.write("=" * 64 + "\n")
     sys.stdout.write(
-        "变异组：%d 组，按预期红 %d / SKIP %d / 未按预期 %d\n"
-        % (len(results) + len(skips), len(results) - len(bad), len(skips), len(bad))
+        "变异组：%d 组，按预期红 %d / 允许 SKIP %d / 未按预期 %d\n"
+        % (
+            len(results) + len(skips),
+            len(results) - len([r for r in results if not r[1].startswith("PASS")]),
+            len(skips) - len(unexpected_skips),
+            len(bad),
+        )
     )
     sys.stdout.write("结论: %s\n" % ("符合预期" if not bad else "有 %d 组未按预期" % len(bad)))
     return 0 if not bad else 1
