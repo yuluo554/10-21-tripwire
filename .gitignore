@@ -87,3 +87,6 @@ desktop.ini
 _private/
 *.local
 *.log
+
+# 门与构建的临时落点（变异验证、wheel 试构建）
+.tmp/

@@ -1,8 +1,10 @@
 # 00 · README 总览 — 10-21-tripwire（结构化数据往返保真审计器）
 
+> 方法论：`ai-tool-project-sprint`（装订 2026-10-21）｜布局门：`python tools/check_sprint_layout.py`｜续接对话第一件事 = 跑它
+
 - **性质**：不参赛项目题 · 发布 GitHub **公开仓库** · 署名 yuluo554
 - **产出**：仓库 `10-21-tripwire`，CLI 入口 `tripwire`；**纯本地 Python CLI，零网络**
-- **状态**：**骨架期**（阶段 4 完成：plan/00 + plan/01 + data/README + .gitignore + 首提交）；M1–M6 未开工
+- **状态**：**M0 完成（计划套件 + 方法论装订 + 可运行骨架）**；M1–M6 未开工。里程碑状态以 §六 表为准
 - **定位宣言**："一份数据经过 CSV→Excel→JSON→SQLite 转一圈，哪些值悄悄变了？本工具给逐单元格差异 + 归因规则名 + 证据 + 出问题的环节。" 现有工具要么只做两文件单元格差异但不解释原因，要么只做单文件体检但不做往返对照。
 - **基准日**：2026-10-20（代理实际检索窗口 **2026-10-19T18:35Z–18:57Z**，UTC 仍在 10-19）
 
@@ -15,12 +17,14 @@
 | `plan/00-README总览.md` | 本文档：索引 / 决策记录 / 弃选项 / 承诺-证据台账 / 招牌动词表 / 提交材料实物表 / 里程碑 | ✅ v1（骨架期） |
 | `plan/01-题目文档.md` | 十段式题目定稿（头部/介绍/任务/提交材料/评分/锚点/边界） | ✅ v1 |
 | `data/README.md` | 依据查证三态 + 事实核验台账 + 数据源可获取性 + 合成数据纪律 + **数值口径单一定义** | ✅ v1 |
-| `plan/02-架构与技术选型.md` | 分层架构 / IR / 依赖 / 退出码 / 确定性纪律 | ⬜ 待 M1 开工前落盘 |
-| `plan/03-模块详设.md` | M1–M5 接口与测试点 + 跨模块门禁清单 | ⬜ 待 M1 |
-| `plan/04-数据计划.md` | 三组样本池 / 真值覆盖口径 / 夹具 schema | ⬜ 待 M4 |
-| `plan/05-里程碑与发布.md` | M1–M6 DoD / 出口门 / 依赖图 | ⬜ 待 M1 |
-| `plan/06-交付对标.md` | 提交材料对照 / 评分对照 / 待定决策 | ⬜ 待 M5 |
-| `README.md`（仓库根） | 用户向：定位 / 快速开始 / 退出码 / 隐私 | ⬜ 待 M5 |
+| `plan/02-架构与技术选型.md` | 分层架构 / IR / 依赖 / 退出码 / 确定性纪律 | ✅ v1（M0） |
+| `plan/03-模块详设.md` | M1–M5 接口与测试点 + 跨模块门禁清单（K 编号） | ✅ v1（M0） |
+| `plan/04-数据计划.md` | 三组样本池 / 真值覆盖口径 / 夹具 schema | ✅ v1（M0） |
+| `plan/05-里程碑与发布.md` | M0–M6 DoD / 出口门 / 依赖图 | ✅ v1（M0） |
+| `plan/06-交付对标与决策.md` | 提交材料对照 / 评分对照 / 风险登记 / 缺口表 | ✅ v1（M0） |
+| `plan/HANDOFF-M0.md` | M0 收尾交接单（七节） | ✅（M0） |
+| `AGENTS.md` | 方法论锚点 + 布局门命令 + 强制布局清单 | ✅（M0） |
+| `README.md`（仓库根） | 用户向：定位 / 快速开始 / 退出码 / 隐私 | ✅ v0 骨架版（M5 补全用法） |
 | `docs/pipeline-schema.md` | 管线声明格式（阶段命名规则、禁止混称 Excel） | ⬜ 待 M1 |
 | `docs/rules.md` | 18 条规则人类可读表（含证据要求与反例） | ⬜ 待 M3 |
 | `docs/fixture-pools.md` | 三组样本池构造纪律 | ⬜ 待 M4 |
@@ -78,7 +82,10 @@
 | 退出码 0/1/2/3 | 设计 | CLI 契约 | 四条退出码各一条测试 | ⬜ M5 |
 | stable fingerprint 跨 run diff | 设计 | 报告 JSON | 同输入两次 run 的 fingerprint 集合相等 | ⬜ M5 |
 | 纯本地零网络 | 红线 | 无网络客户端依赖 | 依赖树审计 + 请求打桩测试 | ⬜ M5 |
-| 发布：tag + Release 附产物 + 发布留档三件套 | 发布纪律 | 公开仓库 | `scripts/check_release.py` 无 FAIL | ⬜ M6 |
+| 发布：tag + Release 附产物 + 发布留档三件套 | 发布纪律 | 公开仓库 | `tools/check_desensitized.py` 0 命中；`plan/RELEASE-M6.md` §覆盖对账无空项 | ⬜ M6 |
+| 方法论装订（AGENTS + 布局门 + plan/00 顶部行） | `ai-tool-project-sprint` 硬约束③ | 纯本地脚本 | `python tools/check_sprint_layout.py` 全绿；`python tools/verify_gate_mutations.py` 17 组按预期（14 红 / 3 SKIP / 0 未按预期） | ✅ M0 |
+| 脱敏门（本机路径 / 用户名 / 回环代理） | 发布纪律 | 纯本地脚本 | `python tools/check_desensitized.py` 0 命中且 4 组注入变异全红 | ✅ M0 |
+| 可运行骨架（CLI + 写盘单点 + 声明校验） | 设计 D11–D14 | 纯本地 | `tripwire --version` / `validate-pipeline` / `rules --count`；未实现子命令 exit 3 | ✅ M0 |
 
 **台账外的"永不进判定路径"项**（写清以免被当欠债）：LibreOffice / Google Sheets / WPS 通道 ⬜ 未实测，**只登记为二期候选**；YAML/TOML/MessagePack 通道 ⬜ 二期。
 
@@ -127,12 +134,13 @@
 
 | 里程碑 | 内容 | DoD（完成判据） | 状态 |
 |---|---|---|---|
+| **M0 · 计划与装订** | `plan/00–06` + `data/README` + `AGENTS.md` + 布局门 + 脱敏门 + 可运行骨架（CLI / 写盘单点 / 管线声明校验）+ 冒烟测试 | 布局门全绿且 10 组变异全红；脱敏门 0 命中且 4 组变异全红；`tripwire --help/--version/validate-pipeline/rules --count` 可运行；未实现子命令 exit 3；`pytest -q` 绿 | ✅ |
 | **M1 · 数据先行** | 三族管线执行器 + `stages.json` + 逐段文本快照 + 运行时指纹。**先做 Excel COM 通道真机验证**（Windows），再补 `openpyxl_csv` 作为可跑的 fallback 通道（**两个不同 stage 名**） | 三条管线各跑通一次；`stages.json` 含每阶段列类型/行列数/内容哈希；`stage-<k>.csv` 为原始文本且哈希可复算；缺依赖时显式失败 | ⬜ |
 | **M2 · 差异引擎** | 对齐三策略（`key` 默认 / `position` / `lcs`）+ 四项结构差异 + `--batch` dtype 漂移吸收 | 未给主键 exit 3；原型 9 差异可复现；差异排序稳定（两次运行逐字节一致） | ⬜ |
 | **M3 · 归因规则** | 18 条四族规则 + 快照序列筛选 + `unclassified` 一等公民 + `--fail-on` | 原型 9/9 命中、unclassified=0；构造"同规则不同环节"用例 `resolved_stage` 不同；`--explain` 日志格式符合 `data/README` 口径 | ⬜ |
-| **M4 · 夹具与门禁** | `gen-fixture` 三组样本池 + `expected.json` + 门禁三数 | 同 seed 逐字节一致；`control-lossless` 组零误报；三数任一不满足 exit 2；三数打印在报告首屏 | ⬜ |
+| **M4 · 夹具与门禁** | `gen-fixture` 三组样本池 + `expected.json` + 门禁三数 | 同 seed 逐字节一致（两层）；`control-lossless` 组零误报；三数任一不满足 exit 2；三数打印在报告首屏 | ⬜ |
 | **M5 · 报告与 CI 出口** | MD/JSON/SARIF 同源 + 首屏三段 + 退出码 0/1/2/3 + stable fingerprint | 三格式差异集合一致；四条退出码各一条测试；同输入两次 run 的 fingerprint 集合相等；`tripwire --help` 可运行 | ⬜ |
-| **M6 · 脱敏与发布** | 公开仓库发布 | **`git tag` + GitHub Release（附产物：本地留 release zip 副本 + sha256 留档）+ 发布留档 `plan/RELEASE-M6.md`（在 tag 之前落盘进 tag 树）**；`scripts/check_release.py` 无 FAIL | ⬜ |
+| **M6 · 脱敏与发布** | 公开仓库发布 | **`git tag` + GitHub Release（附产物：sdist + wheel + `SHA256SUMS`）+ 发布留档 `plan/RELEASE-M6.md`（在 tag 之前落盘进 tag 树，两栏 + 阶段 7 覆盖对账）**；`python tools/check_desensitized.py` 0 命中 | ⬜ |
 
-> **DoD 产物口径**：选 **A) Release 附产物**（≥1 个手工上传附件，本地留副本 + sha256）。该口径自首提交起不得降级。
+> **DoD 产物口径**：选 **A) Release 附产物**（sdist + wheel + `SHA256SUMS`，由 CI 生成并上传）。该口径自首提交起不得降级。
 > **tag 时点口径**：`plan/RELEASE-M6.md` 必须在 tag 之前写好并进 tag 树；tag 后才产生的事实（CI run id / 附件 sha256 / 真下载复核）作为追加提交，在留档里分"tag 时点事实 / tag 后追加事实"两栏写。

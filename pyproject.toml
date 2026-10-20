@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tripwire"
+description = "Round-trip fidelity auditor for structured data: cell-level diffs with rule attribution and stage localization."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "yuluo554" }]
+keywords = ["csv", "excel", "roundtrip", "fidelity", "audit", "diff"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+  "Topic :: Utilities",
+  "Topic :: Office/Business",
+]
+dependencies = [
+  "pandas>=2.2",
+  "openpyxl>=3.1",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+windows = ["pywin32>=306"]
+
+[project.scripts]
+tripwire = "tripwire.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/yuluo554/10-21-tripwire"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = true
+
+[tool.setuptools.dynamic]
+version = { attr = "tripwire.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+tripwire = ["rules/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

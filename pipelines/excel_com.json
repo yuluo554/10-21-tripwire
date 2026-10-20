@@ -1,0 +1,8 @@
+{
+  "name": "excel_com",
+  "input": "csv",
+  "schema_version": 1,
+  "stages": [
+    { "stage_name": "excel_com_csv", "engine": "excel_com" }
+  ]
+}

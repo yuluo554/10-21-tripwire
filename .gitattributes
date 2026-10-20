@@ -1,0 +1,19 @@
+# 源码归一；被断言字节的产物不归一
+* text=auto eol=lf
+
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.csv text eol=lf
+
+# 金样本的字节形态本身会被 sha256 登记，git 不许碰
+fixtures/golden/*.csv -text
+fixtures/golden/*.json -text
+
+*.xlsx binary
+*.xls binary
+*.png binary
+*.zip binary

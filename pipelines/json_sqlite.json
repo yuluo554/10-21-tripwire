@@ -1,0 +1,8 @@
+{
+  "name": "json_sqlite",
+  "input": "csv",
+  "schema_version": 1,
+  "stages": [
+    { "stage_name": "json_sqlite_csv", "engine": "json_sqlite" }
+  ]
+}

@@ -1,0 +1,13 @@
+# 源码包白名单：让 sdist 自足（用户解包后能复算三份声明与金样本）
+include README.md
+include LICENSE
+include AGENTS.md
+include data/README.md
+recursive-include pipelines *.json
+recursive-include fixtures/golden *
+recursive-include docs *.md
+recursive-include plan *.md
+prune tests
+prune tools
+prune .github
+global-exclude *.py[cod] __pycache__ .DS_Store

@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "note": "18 条规则的机器可读权威清单。数值/谓词口径见 data/README.md 第六节；代码只引用不复述。predicate 是 tripwire.rules.predicates 里的函数名（纯函数，禁止网络/时钟/随机）。",
+  "families": {
+    "numeric": 8,
+    "null": 2,
+    "text": 4,
+    "time": 4
+  },
+  "rules": [
+    {
+      "id": 1,
+      "family": "numeric",
+      "name": "leading_zero_lost",
+      "predicate": "leading_zero_lost",
+      "possible_stages": ["excel_com_csv", "openpyxl_csv", "json_sqlite_csv", "pandas_csv"],
+      "evidence_required": ["orig_text", "got_text"],
+      "counterexample": "orig='0', got='0' -> 不命中（无丢失）"
+    },
+    {
+      "id": 2,
+      "family": "numeric",
+      "name": "scientific_notation_coercion",
+      "predicate": "scientific_notation_coercion",
+      "possible_stages": ["excel_com_csv", "openpyxl_csv", "pandas_csv"],
+      "evidence_required": ["orig_text", "got_text"],
+      "counterexample": "orig='ABC123', got='1E5' -> 不命中（原文非纯数字串）"
+    },
+    {
+      "id": 3,
+      "family": "numeric",
+      "name": "float_precision_truncated",
+      "predicate": "float_precision_truncated",
+      "possible_stages": ["pandas_csv", "json_sqlite_csv", "openpyxl_csv"],
+      "evidence_required": ["orig_text", "got_text"],
+      "counterexample": "orig='19.90', got='19.9' -> 数值相等，归 decimal_trailing_zero_dropped"
+    },
+    {
+      "id": 4,
+      "family": "numeric",
+      "name": "int53_overflow",
+      "predicate": "int53_overflow",
+      "possible_stages": ["json_sqlite_csv", "excel_com_csv"],
+      "evidence_required": ["orig_text", "got_text"],
+      "counterexample": "orig='9007199254740991'（=2^53-1）, got 同值 -> 不命中"
+    },
+    {
+      "id": 5,
+      "family": "numeric",
+      "name": "excel_15_digit_truncation",
+      "predicate": "excel_15_digit_truncation",
+      "possible_stages": ["excel_com_csv"],
+      "evidence_required": ["orig_text", "got_text"],
+      "counterexample": "openpyxl_csv 跑出的同类截断 -> 不得归因到本规则（落 unclassified 或 float_precision_truncated）"
+    },
+    {
+      "id": 6,
+      "family": "numeric",
+      "name": "negative_zero_sign_lost",
+      "predicate": "negative_zero_sign_lost",
+      "possible_stages": ["excel_com_csv", "json_sqlite_csv", "pandas_csv"],
+      "evidence_required": ["orig_text", "got_text"],
+      "counterexample": "orig='-0.5', got='-0.5' -> 不命中（非零值）"
+    },
+    {
+      "id": 7,
+      "family": "numeric",
+      "name": "decimal_trailing_zero_dropped",
+      "predicate": "decimal_trailing_zero_dropped",
+      "possible_stages": ["excel_com_csv", "pandas_csv", "json_sqlite_csv"],
+      "evidence_required": ["orig_text", "got_text"],
+      "counterexample": "orig='19.9', got='19.9' -> 不命中（无尾随零）"
+    },
+    {
+      "id": 8,
+      "family": "numeric",
+      "name": "exponent_form_normalized",
+      "predicate": "exponent_form_normalized",
+      "possible_stages": ["excel_com_csv", "openpyxl_csv"],
+      "evidence_required": ["orig_text", "got_text"],
+      "counterexample": "orig='1e-7', got='2e-7' -> 不命中（数值不等）"
+    },
+    {
+      "id": 9,
+      "family": "null",
+      "name": "empty_vs_null_vs_missing",
+      "predicate": "empty_vs_null_vs_missing",
+      "possible_stages": ["pandas_csv", "json_sqlite_csv"],
+      "evidence_required": ["orig_text", "got_text"],
+      "counterexample": "orig='0', got='' -> 不命中（原文非空态）"
+    },
+    {
+      "id": 10,
+      "family": "null",
+      "name": "null_token_collision",
+      "predicate": "null_token_collision",
+      "possible_stages": ["pandas_csv", "json_sqlite_csv"],
+      "evidence_required": ["orig_text", "got_text"],
+      "counterexample": "orig='NULLY', got='' -> 不命中（字面量不匹配）"
+    },
+    {
+      "id": 11,
+      "family": "text",
+      "name": "unicode_normalization_changed",
+      "predicate": "unicode_normalization_changed",
+      "possible_stages": ["pandas_csv", "openpyxl_csv", "json_sqlite_csv"],
+      "evidence_required": ["orig_text", "got_text"],
+      "counterexample": "orig='cafe', got='cafe' -> 不命中（无分解差异）"
+    },
+    {
+      "id": 12,
+      "family": "text",
+      "name": "whitespace_collapsed",
+      "predicate": "whitespace_collapsed",
+      "possible_stages": ["pandas_csv", "openpyxl_csv"],
+      "evidence_required": ["orig_text", "got_text"],
+      "counterexample": "orig=' a b ', got=' a b ' -> 不命中（空白未变）"
+    },
+    {
+      "id": 13,
+      "family": "text",
+      "name": "bom_prepended",
+      "predicate": "bom_prepended",
+      "possible_stages": ["openpyxl_csv", "pandas_csv"],
+      "evidence_required": ["got_text"],
+      "counterexample": "orig='\\ufeffx', got='x' -> 不命中（BOM 是移除而非添加）"
+    },
+    {
+      "id": 14,
+      "family": "text",
+      "name": "encoding_mojibake",
+      "predicate": "encoding_mojibake",
+      "possible_stages": ["excel_com_csv", "openpyxl_csv", "json_sqlite_csv", "pandas_csv"],
+      "evidence_required": ["orig_text", "got_text"],
+      "counterexample": "orig='é', got='é' -> 不命中（仅检出、不修复）"
+    },
+    {
+      "id": 15,
+      "family": "time",
+      "name": "date_retyped_to_text",
+      "predicate": "date_retyped_to_text",
+      "possible_stages": ["excel_com_csv", "pandas_csv"],
+      "evidence_required": ["orig_text", "got_text"],
+      "counterexample": "orig='2024-01-02', got='2024-01-02' -> 不命中（形态未变）"
+    },
+    {
+      "id": 16,
+      "family": "time",
+      "name": "date_system_shift_1904",
+      "predicate": "date_system_shift_1904",
+      "possible_stages": ["excel_com_csv"],
+      "evidence_required": ["orig_text", "got_text"],
+      "counterexample": "非 1904 切换的普通日期格式变化 -> 不命中"
+    },
+    {
+      "id": 17,
+      "family": "time",
+      "name": "serial_60_phantom_date",
+      "predicate": "serial_60_phantom_date",
+      "possible_stages": ["excel_com_csv"],
+      "evidence_required": ["orig_text", "got_text"],
+      "counterexample": "serial 59 -> '1900-02-28' -> 不命中"
+    },
+    {
+      "id": 18,
+      "family": "time",
+      "name": "number_format_dropped",
+      "predicate": "number_format_dropped",
+      "possible_stages": ["excel_com_csv", "openpyxl_csv"],
+      "evidence_required": ["orig_text", "got_text", "stage_meta"],
+      "counterexample": "orig='0.15' 带 '0%' -> got='0.15' 无格式 -> 命中；值本身未变"
+    }
+  ]
+}

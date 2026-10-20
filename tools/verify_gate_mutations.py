@@ -1,0 +1,351 @@
+#!/usr/bin/env python3
+"""门自身的变异验证：故意弄坏被测对象，门必须变红；还原后必须复绿。
+
+为什么要有这个脚本：一个"永远绿"的门和没有门是一回事。布局门/脱敏门里的每条判据
+都必须被至少一组变异打过，否则它就是**未经证伪的判据**。
+
+纪律（全脚本遵守）：
+  1. 替换前 assert 标记存在；替换后 assert 文件字节已变；还原后 assert 字节一致（`try/finally`）。
+  2. 变异点选**数据**不选**措辞**（改标题文案不会让数据消失，也就测不出判据）。
+  3. 靶子随项目进度过期时走**显式 SKIP**（打印 SKIP，不计 FAIL 也不计绿）。
+
+用法：`python tools/verify_gate_mutations.py`
+退出码：0 全部按预期（红/绿/SKIP 都符合预期）/ 1 有未按预期 / 2 用法错误。
+"""
+
+from __future__ import annotations
+
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+PY = sys.executable
+
+results: list[tuple[str, str, str]] = []  # (case, status, detail)
+
+
+class NothingToMutate(Exception):
+    """靶子在当前项目进度下不存在——显式 SKIP，不冒充通过。"""
+
+
+def _read(rel: str) -> str:
+    return (ROOT / rel).read_text(encoding="utf-8", newline="")
+
+
+def _write_raw(rel: str, text: str) -> None:
+    (ROOT / rel).write_text(text, encoding="utf-8", newline="")
+
+
+def _bytes(rel: str) -> bytes:
+    return (ROOT / rel).read_bytes()
+
+
+def _gate() -> tuple[int, str]:
+    proc = subprocess.run(
+        [PY, str(ROOT / "tools" / "check_sprint_layout.py")],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=120,
+    )
+    return proc.returncode, proc.stdout + proc.stderr
+
+
+def _desense() -> tuple[int, str]:
+    proc = subprocess.run(
+        [PY, str(ROOT / "tools" / "check_desensitized.py")],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=120,
+    )
+    return proc.returncode, proc.stdout + proc.stderr
+
+
+def mutate_text(rel: str, old: str, new: str, expect_fail: str, case: str, runner=_gate) -> None:
+    """文本替换型变异：断言标记存在 -> 断言已变 -> 跑门 -> 断言指定判据 FAIL -> 还原 -> 断言复绿。"""
+    original = _bytes(rel)
+    text = original.decode("utf-8")
+    if old not in text:
+        raise NothingToMutate(f"{rel} 里找不到标记: {old[:40]!r}")
+    mutated = text.replace(old, new, 1)
+    assert mutated != text, "替换后字节未变化（变异是 no-op）"
+    try:
+        _write_raw(rel, mutated)
+        assert _bytes(rel) != original, "写回后字节未变化（变异是 no-op）"
+        code, output = runner()
+        if code == 0:
+            results.append((case, "FAIL(未变红)", f"{rel} 变异后门仍绿"))
+            return
+        line = next((l for l in output.split("\n") if l.startswith("FAIL") and expect_fail in l), "")
+        results.append(
+            (case, "PASS" if line else "FAIL(红错判据)", line.strip() or f"未出现 {expect_fail} 的 FAIL 行")
+        )
+    finally:
+        _write_raw(rel, original.decode("utf-8"))
+        assert _bytes(rel) == original, "还原后字节不一致"
+
+
+def mutate_delete(rel: str, expect_fail: str, case: str, runner=_gate) -> None:
+    """删件型变异：备份 -> 删除 -> 跑门 -> 断言指定判据 FAIL -> 还原。"""
+    original = _bytes(rel)
+    backup = Path(tempfile.mkdtemp(prefix="mut-")) / Path(rel).name
+    shutil.copy2(ROOT / rel, backup)
+    try:
+        (ROOT / rel).unlink()
+        code, output = runner()
+        if code == 0:
+            results.append((case, "FAIL(未变红)", f"删除 {rel} 后门仍绿"))
+            return
+        line = next((l for l in output.split("\n") if l.startswith("FAIL") and expect_fail in l), "")
+        results.append(
+            (case, "PASS" if line else "FAIL(红错判据)", line.strip() or f"未出现 {expect_fail} 的 FAIL 行")
+        )
+    finally:
+        (ROOT / rel).write_bytes(original)
+        assert _bytes(rel) == original, "还原后字节不一致"
+        shutil.rmtree(backup.parent, ignore_errors=True)
+
+
+# ── 布局门：10 条判据组（判据有几条，变异就覆盖几条）──────────────────────────
+
+def v1_delete_agents():
+    mutate_delete("AGENTS.md", "LAYOUT.FILES", "V1 删 AGENTS.md")
+
+
+def v2_flip_status_in_one_copy():
+    # 只改一个副本（README）→ 跨副本不一致
+    mutate_text(
+        "README.md",
+        "| M0 | 计划与方法论装订 + 可运行骨架 | ✅ |",
+        "| M0 | 计划与方法论装订 + 可运行骨架 | ⬜ |",
+        "LAYOUT.STATUS",
+        "V2 一处副本把 M0 翻 ⬜",
+    )
+
+
+def v3_stale_gap():
+    # 缺口说明里写回已 ✅ 的里程碑号（数据变异，不是措辞）
+    mutate_text(
+        "plan/06-交付对标与决策.md",
+        "| G-1 管线执行器未实现 | 三份声明可校验但不可执行 |",
+        "| G-1 管线执行器未实现（M0 也没做） | 三份声明可校验但不可执行 |",
+        "LAYOUT.GAPS",
+        "V3 缺口说明里写回已 ✅ 里程碑",
+    )
+
+
+def v4_delete_handoff():
+    mutate_delete("plan/HANDOFF-M0.md", "LAYOUT.HANDOFFS", "V4 删 HANDOFF-M0.md")
+
+
+def v5_delete_binding_line():
+    mutate_text(
+        "plan/00-README总览.md",
+        "> 方法论：`ai-tool-project-sprint`（装订 2026-10-21）｜布局门：`python tools/check_sprint_layout.py`｜续接对话第一件事 = 跑它\n",
+        "",
+        "LAYOUT.BINDING_HEAD",
+        "V5 删 plan/00 顶部装订行",
+    )
+
+
+def v6_delete_plan_doc():
+    mutate_delete("plan/02-架构与技术选型.md", "LAYOUT.FILES", "V6 删 plan/02")
+
+
+def v7_missing_section():
+    mutate_text(
+        "plan/02-架构与技术选型.md",
+        "## 三、依赖选型",
+        "## 三、依赖",
+        "LAYOUT.SECTIONS",
+        "V7 改写 plan/02 必需小节标题",
+    )
+
+
+def v8_ledger_pending():
+    mutate_text(
+        "plan/00-README总览.md",
+        "| 方法论装订（AGENTS + 布局门 + plan/00 顶部行） | `ai-tool-project-sprint` 硬约束③ | 纯本地脚本 | `python tools/check_sprint_layout.py` 全绿且 10 组变异全红 | ✅ M0 |",
+        "| 方法论装订（AGENTS + 布局门 + plan/00 顶部行） | `ai-tool-project-sprint` 硬约束③ | 纯本地脚本 | `python tools/check_sprint_layout.py` 全绿且 10 组变异全红 | ⬜ 待 M0 |",
+        "LAYOUT.LEDGER",
+        "V8 台账 ✅ 行改 ⬜ 待 M0",
+    )
+
+
+def v9_documented_tool_missing():
+    # 文档点名了 tools/ 脚本但它不在仓库里（"引用而不实现"的出口门静默消失形态）
+    target = ROOT / "tools" / "check_desensitized.py"
+    original = target.read_bytes()
+    try:
+        target.unlink()
+        code, output = _gate()
+        if code == 0:
+            results.append(("V9 文档点名的工具缺失", "FAIL(未变红)", "删除 tools/check_desensitized.py 后门仍绿"))
+            return
+        line = next((l for l in output.split("\n") if l.startswith("FAIL") and "LAYOUT.DOC_TOOLS" in l), "")
+        results.append(
+            ("V9 文档点名的工具缺失", "PASS" if line else "FAIL(红错判据)", line.strip() or "未出现 LAYOUT.DOC_TOOLS 的 FAIL")
+        )
+    finally:
+        target.write_bytes(original)
+        assert target.read_bytes() == original, "还原后字节不一致"
+
+
+def v10_ledger_header_missing():
+    # 判据"找不到表头"分支：门要报 FAIL 而不是崩（rc=1 但一条结论都没跑）
+    mutate_text(
+        "plan/00-README总览.md",
+        "| 承诺项 | 素材来源 | 交付物内可达性 | 核验方式 | 状态 |",
+        "| 承诺项 | 素材来源 | 交付物内可达性 | 核验方式 | 进度 |",
+        "LAYOUT.LEDGER",
+        "V10 台账表头改名（判据表搬走）",
+    )
+
+
+def v11_release_section_removed():
+    if not (ROOT / "plan" / "RELEASE-M6.md").is_file():
+        raise NothingToMutate("M6 未完成，发布留档尚不存在（本条在 M6 之前的预期形态）")
+    mutate_text(
+        "plan/RELEASE-M6.md",
+        "### 阶段 7 覆盖对账",
+        "### 覆盖",
+        "LAYOUT.RELEASE",
+        "V11 删发布留档的覆盖对账小节",
+    )
+
+
+def v12_release_two_columns():
+    if not (ROOT / "plan" / "RELEASE-M6.md").is_file():
+        raise NothingToMutate("M6 未完成，发布留档尚不存在（本条在 M6 之前的预期形态）")
+    mutate_text(
+        "plan/RELEASE-M6.md",
+        "## 二、tag 后追加事实",
+        "## 二、追加事实",
+        "LAYOUT.RELEASE",
+        "V12 去掉发布留档的两栏标记",
+    )
+
+
+def v13_release_doc_missing():
+    path = ROOT / "plan" / "RELEASE-M6.md"
+    if not path.is_file():
+        raise NothingToMutate("M6 未完成，发布留档尚不存在（本条在 M6 之前的预期形态）")
+    mutate_delete("plan/RELEASE-M6.md", "LAYOUT.RELEASE", "V13 删 RELEASE-M6.md")
+
+
+# ── 脱敏门：4 条规则各一组 ────────────────────────────────────────────────
+
+PROBE = "_mutation_probe.md"
+
+
+def _probe(line: str, expect_rule: str, case: str) -> None:
+    target = ROOT / PROBE
+    try:
+        target.write_text(line + "\n", encoding="utf-8")
+        code, output = _desense()
+        if code == 0:
+            results.append((case, "FAIL(未变红)", f"注入 {line!r} 后脱敏门仍绿"))
+            return
+        hit = next((l for l in output.split("\n") if f"[{expect_rule}]" in l), "")
+        results.append((case, "PASS" if hit else "FAIL(红错规则)", hit.strip() or f"未命中 {expect_rule}"))
+    finally:
+        target.unlink(missing_ok=True)
+
+
+def d1_drive_path():
+    _probe("D:/ProgramData/secret/notes.txt", "drive-absolute-path", "D1 盘符绝对路径")
+
+
+def d2_msys_path():
+    _probe("/c/Users/realname/secret.txt", "msys-user-path", "D2 MSYS 用户路径")
+
+
+def d3_username():
+    _probe("owner: ASUS", "host-username", "D3 本机用户名")
+
+
+def d4_proxy():
+    _probe("proxy=http://127.0.0.1:7897", "loopback-proxy", "D4 回环代理端口")
+
+
+LAYOUT_CASES = [
+    v1_delete_agents,
+    v2_flip_status_in_one_copy,
+    v3_stale_gap,
+    v4_delete_handoff,
+    v5_delete_binding_line,
+    v6_delete_plan_doc,
+    v7_missing_section,
+    v8_ledger_pending,
+    v9_documented_tool_missing,
+    v10_ledger_header_missing,
+    v11_release_section_removed,
+    v12_release_two_columns,
+    v13_release_doc_missing,
+]
+
+DESENSE_CASES = [d1_drive_path, d2_msys_path, d3_username, d4_proxy]
+
+
+def main() -> int:
+    if len(sys.argv) > 1:
+        sys.stderr.write("verify_gate_mutations: unknown argument %s\n" % sys.argv[1])
+        return 2
+
+    code, output = _gate()
+    if code != 0:
+        sys.stdout.write("前置：布局门当前不是全绿，先修好再跑变异。\n" + output)
+        return 1
+    code, output = _desense()
+    if code != 0:
+        sys.stdout.write("前置：脱敏门当前不是 0 命中，先修好再跑变异。\n" + output)
+        return 1
+
+    sys.stdout.write("基线：布局门全绿 / 脱敏门 0 命中\n")
+    sys.stdout.write("=" * 64 + "\n")
+
+    skips = []
+    for case in LAYOUT_CASES:
+        try:
+            case()
+        except NothingToMutate as reason:
+            skips.append((case.__name__, str(reason)))
+        except AssertionError as error:
+            results.append((case.__name__, "FAIL(变异未生效)", str(error)))
+        code, output = _gate()
+        if code != 0:
+            results.append((case.__name__, "FAIL(还原后仍红)", output[-300:]))
+
+    for case in DESENSE_CASES:
+        try:
+            case()
+        except AssertionError as error:
+            results.append((case.__name__, "FAIL(变异未生效)", str(error)))
+        code, output = _desense()
+        if code != 0:
+            results.append((case.__name__, "FAIL(还原后仍红)", output[-300:]))
+
+    for name, status, detail in results:
+        sys.stdout.write("%-22s %-16s %s\n" % (status, name, detail))
+    for name, reason in skips:
+        sys.stdout.write("%-22s %-16s %s\n" % ("SKIP", name, reason))
+
+    bad = [r for r in results if not r[1].startswith("PASS")]
+    sys.stdout.write("=" * 64 + "\n")
+    sys.stdout.write(
+        "变异组：%d 组，按预期红 %d / SKIP %d / 未按预期 %d\n"
+        % (len(results) + len(skips), len(results) - len(bad), len(skips), len(bad))
+    )
+    sys.stdout.write("结论: %s\n" % ("符合预期" if not bad else "有 %d 组未按预期" % len(bad)))
+    return 0 if not bad else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
