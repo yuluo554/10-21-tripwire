@@ -8,6 +8,10 @@
 - LF 行尾（显式 `newline="\\n"`，不交给平台默认）
 - 结尾换行恰好一个
 - 原子写（临时文件 + `os.replace`），中断不留半个产物
+
+例外只有一个，且是**有意的**：`write_text_raw` 用于 M1 的逐段快照。快照是**被审计的对象**，
+把它的 CRLF 归一成 LF 就等于在比较之前先替它"修好"了一次——那正是 D6/K1 要禁止的失真。
+所以快照走 raw，报告与元数据走上面的冻结约定。
 """
 
 from __future__ import annotations
@@ -27,11 +31,11 @@ def dumps_json(data: Any) -> str:
     return json.dumps(data, sort_keys=True, ensure_ascii=False, indent=2) + NEWLINE
 
 
-def _atomic_write(path: Path, text: str) -> None:
+def _atomic_write(path: Path, text: str, *, newline: str = NEWLINE) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".tmp-", suffix=path.suffix or ".tmp")
     try:
-        with os.fdopen(fd, "w", encoding=ENCODING, newline=NEWLINE) as handle:
+        with os.fdopen(fd, "w", encoding=ENCODING, newline=newline) as handle:
             handle.write(text)
         os.replace(tmp, path)
     except BaseException:
@@ -55,4 +59,15 @@ def write_text(path: str | os.PathLike[str], text: str) -> Path:
         normalized += "\n"
     target = Path(path)
     _atomic_write(target, normalized)
+    return target
+
+
+def write_text_raw(path: str | os.PathLike[str], text: str) -> Path:
+    """逐字节写文本，**不做任何归一**（快照专用，K1）。
+
+    与 `write_text` 的唯一区别是"一个字节都不许动"：CRLF / 结尾无换行 / 尾随空格
+    都可能正是被审计的失真形态本身。`newline=""` 关掉平台翻译，编码仍固定 UTF-8。
+    """
+    target = Path(path)
+    _atomic_write(target, text, newline="")
     return target

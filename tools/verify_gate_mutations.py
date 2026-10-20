@@ -34,7 +34,9 @@ class NothingToMutate(Exception):
 
 
 def _read(rel: str) -> str:
-    return (ROOT / rel).read_text(encoding="utf-8", newline="")
+    # 注意：`Path.read_text(newline=)` 是 3.13 才有的参数，本机 3.12 会 TypeError
+    with open(ROOT / rel, "r", encoding="utf-8", newline="") as handle:
+        return handle.read()
 
 
 def _write_raw(rel: str, text: str) -> None:
@@ -132,14 +134,68 @@ def v2_flip_status_in_one_copy():
 
 
 def v3_stale_gap():
-    # 缺口说明里写回已 ✅ 的里程碑号（数据变异，不是措辞）
-    mutate_text(
-        "plan/06-交付对标与决策.md",
-        "| G-1 管线执行器未实现 | 三份声明可校验但不可执行 |",
-        "| G-1 管线执行器未实现（M0 也没做） | 三份声明可校验但不可执行 |",
-        "LAYOUT.GAPS",
-        "V3 缺口说明里写回已 ✅ 里程碑",
+    """缺口说明里写回已 ✅ 的里程碑号（数据变异，不是措辞）。
+
+    **动态选取**靶子行（与 V8 同一条纪律）：写死某一行文案时，那行缺口一被关闭靶子就消失，
+    变异会退化成"靶子过期"（M1 关掉 G-1 时就真发生了）。这里改成：从缺口表挑**第一条
+    仍存在**的数据行，把当前最小的已 ✅ 里程碑号注入它的「说明」列——注入哪行不重要，
+    重要的是"缺口列里出现已完成里程碑号"这一形态必须让门变红。
+    """
+    rel = "plan/06-交付对标与决策.md"
+    original = _bytes(rel)
+    lines = original.decode("utf-8").split("\n")
+
+    # 「已 ✅ 的里程碑」要从**状态副本**取（plan/06 本身没有状态行）：
+    # plan/05 §一 状态表是权威副本之一，首格为 `M<k>`，末尾格为状态标记。
+    done = []
+    for line in _read("plan/05-里程碑与发布.md").split("\n"):
+        match = re.match(r"^\|\s*M(\d+)\s*\|", line)
+        if not match:
+            continue
+        if any(mark in line for mark in ("⬜", "🟡", "未开始", "未执行", "待执行", "待确认")):
+            continue
+        done.append(int(match.group(1)))
+    done.sort()
+    if not done:
+        raise NothingToMutate("没有任何已 ✅ 的里程碑（项目还没完成过里程碑）")
+    milestone = done[0]
+
+    header_idx = next(
+        (i for i, line in enumerate(lines) if line.startswith("|") and line.split("|")[1].strip() == "缺口"),
+        -1,
     )
+    if header_idx < 0:
+        raise NothingToMutate("plan/06 找不到缺口表（判据表搬走了？）")
+    target_idx = header_idx + 2
+    if target_idx >= len(lines) or not lines[target_idx].startswith("|"):
+        raise NothingToMutate("缺口表没有任何数据行")
+
+    cells = lines[target_idx].split("|")
+    if len(cells) < 4:
+        raise NothingToMutate("缺口行结构异常（少于 4 段）")
+    cells[2] = cells[2] + "（M%d 也没做）" % milestone
+    lines[target_idx] = "|".join(cells)
+
+    mutated = "\n".join(lines)
+    assert mutated != original.decode("utf-8"), "替换后文本未变化（变异是 no-op）"
+    try:
+        _write_raw(rel, mutated)
+        assert _bytes(rel) != original, "写回后字节未变化（变异是 no-op）"
+        code, output = _gate()
+        if code == 0:
+            results.append(("V3 缺口说明写回已 ✅ 里程碑", "FAIL(未变红)", "plan/06 缺口列变异后门仍绿"))
+            return
+        line = next((l for l in output.split("\n") if l.startswith("FAIL") and "LAYOUT.GAPS" in l), "")
+        results.append(
+            (
+                "V3 缺口说明写回已 ✅ 里程碑",
+                "PASS" if line else "FAIL(红错判据)",
+                line.strip() or "未出现 LAYOUT.GAPS 的 FAIL",
+            )
+        )
+    finally:
+        _write_raw(rel, original.decode("utf-8"))
+        assert _bytes(rel) == original, "还原后字节不一致"
 
 
 def v4_delete_handoff():

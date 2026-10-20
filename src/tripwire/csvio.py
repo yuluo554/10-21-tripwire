@@ -40,8 +40,14 @@ class CsvTable:
 
 
 def read_text(path: str | Path) -> str:
-    """读原文（UTF-8 且保留 BOM 信息：`utf-8` 会把 BOM 读成 `\\ufeff`，这正是我们要检出的）。"""
-    return Path(path).read_text(encoding="utf-8", newline="")
+    """读原文（UTF-8 且保留 BOM 信息：`utf-8` 会把 BOM 读成 `\\ufeff`，这正是我们要检出的）。
+
+    `newline=""` 不开通用换行翻译：CRLF 与 LF 在**快照字节**上是两回事，先归一就再也测不出
+    "换行被改"这类差异。注意 `Path.read_text(newline=)` 是 3.13 才有的参数，本包承诺 3.10+，
+    故必须走 `open()`。
+    """
+    with open(path, "r", encoding="utf-8", newline="") as handle:
+        return handle.read()
 
 
 def sha256_text(text: str) -> str:

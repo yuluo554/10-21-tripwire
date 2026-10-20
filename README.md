@@ -17,14 +17,16 @@ GATE: recall 1.00 precision 1.00 unclassified 0
 | 里程碑 | 内容 | 状态 |
 |---|---|---|
 | M0 | 计划与方法论装订 + 可运行骨架 | ✅ |
-| M1 | 往返管线执行器 + 逐段快照 | ⬜ |
+| M1 | 往返管线执行器 + 逐段快照 | ✅ |
 | M2 | 单元格级差异引擎 | ⬜ |
 | M3 | 归因规则引擎（18 条） | ⬜ |
 | M4 | 真值夹具生成器 + 门禁 | ⬜ |
 | M5 | 报告与 CI 出口 | ⬜ |
 | M6 | 脱敏与发布 | ⬜ |
 
-> 开发中。当前可用：`--help` / `--version` / `validate-pipeline` / `rules --count`；其余子命令返回退出码 3（用法通道）。
+> 开发中。当前可用：`--help` / `--version` / `validate-pipeline` / `rules --count` / `selftest` / **`run`（只跑管线与逐段快照，不产出判定）**；`diff` / `attribute` / `gen-fixture` / `report` 返回退出码 3（用法通道）。
+>
+> **`run` 现在返回 3 而不是 0**：退出码 0 的语义是"无损"，而差异引擎与门禁尚未接线，此刻没有任何差异被算过。跑通 ≠ 判为无损。
 
 ## 安装
 
@@ -37,6 +39,12 @@ python -m pip install -e ".[dev]"
 ```bash
 tripwire --version
 tripwire validate-pipeline pipelines/pandas.json
+
+# 跑一条往返管线，落 runs/<run_id>/stage-<k>.csv + stages.json
+tripwire run --pipeline pipelines/json_sqlite.json --input sample.csv --key id
+
+# 四条通道各自的损失形态不同（Excel 与 openpyxl 是两个不同阶段）
+tripwire selftest        # 同时报告本机四条通道是否可用
 ```
 
 ## 退出码

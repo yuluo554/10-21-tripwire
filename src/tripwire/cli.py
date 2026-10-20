@@ -1,7 +1,11 @@
-"""CLI 入口（骨架期）。
+"""CLI 入口。
 
-骨架期的约定：**未实现的子命令返回 exit 3（用法通道），不伪造空结果**。
-`argparse` 的 `SystemExit(2)` 一律在 `main()` 内转成 3——否则"参数写错"会被读成"门禁失败"。
+两条退出码纪律（口径单点是 `data/README.md` §6.3，代码侧单点是 `exitcodes.py`）：
+1. `argparse` 的 `SystemExit(2)` 一律在 `main()` 内转成 3——否则"参数写错"会被读成"门禁失败"。
+2. **判定通道只在真有判定时才用**：`run` 目前只执行管线（差异与门禁在 M2–M5），
+   因此它**不返回 0**——0 的语义是"无损（无差异且门禁通过）"，此刻没有任何差异被算过，
+   返回 0 就是伪造结论。M1 期间 `run` 一律走用法通道 3，同时在输出里把
+   "管线已跑通 + 产物在哪" 与 "拒绝判定" 两件事分开写，避免与真失败混淆。
 """
 
 from __future__ import annotations
@@ -12,10 +16,23 @@ from pathlib import Path
 
 from tripwire import __version__
 from tripwire import exitcodes
+from tripwire.pipeline import runner, stages
+from tripwire.pipeline.errors import (
+    InputNotUtf8,
+    RunIdCollision,
+    StageFailed,
+    StageUnavailable,
+)
 from tripwire.pipeline.schema import PipelineDeclError, load_pipeline, load_pipeline_dict, validate_pipeline_dict
 from tripwire.rules.predicates import load_rules, rule_count
 
 PROG = "tripwire"
+
+#: 判定通道尚未接线时 `run` 的说明（M5 接线后随 `_cmd_run` 的对应分支一起删除）
+NO_VERDICT_NOTE = (
+    "NOTE: 本次只执行管线（M1）；差异引擎与门禁在 M2–M5，故**不产出有损/无损判定**，"
+    "退出码走用法通道 3（拒绝判定）而非 0（无损）。"
+)
 
 
 class _Parser(argparse.ArgumentParser):
@@ -98,8 +115,69 @@ def _cmd_rules(count_only: bool) -> int:
     return exitcodes.LOSSLESS
 
 
+def _cmd_run(pipeline: str, input_csv: str, key: str | None, align: str, out_dir: str) -> int:
+    """执行管线并落快照。**不产出判定**（M1 只做到快照；见 `NO_VERDICT_NOTE`）。"""
+    try:
+        decl = load_pipeline(pipeline)
+    except PipelineDeclError as error:
+        sys.stderr.write(f"FAIL  管线声明非法: {pipeline}\n      - {error}\n")
+        return exitcodes.USAGE
+
+    # 主键纪律（K4/D3）在这里先挡一次：缺 --key 的 key 对齐即使 M2 才实现，也不该先跑一分钟管线
+    if align == "key" and not key:
+        sys.stderr.write(
+            "FAIL  未声明主键：--align key 需要 --key <列名>；"
+            "不猜对齐（若要按位置比，请显式 --align position）。\n"
+        )
+        return exitcodes.USAGE
+
+    try:
+        run = runner.run_pipeline(decl, input_csv, out_dir)
+    except InputNotUtf8 as error:
+        sys.stderr.write(f"FAIL  {error}\n")
+        return exitcodes.USAGE
+    except StageUnavailable as error:
+        sys.stderr.write(f"FAIL  阶段不可用: {error.stage_name}: {error.reason}\n")
+        _write_failure_hint(error)
+        return exitcodes.USAGE
+    except StageFailed as error:
+        sys.stderr.write(f"FAIL  阶段失败: {error.stage_name}: {error.reason}\n")
+        _write_failure_hint(error)
+        return exitcodes.USAGE
+    except RunIdCollision as error:
+        sys.stderr.write(f"FAIL  {error}\n")
+        return exitcodes.USAGE
+
+    sys.stdout.write(
+        f"PASS  pipeline {run.pipeline_name}  run_id {run.run_id}"
+        f"{'  (reused)' if run.reused else ''}  stages {len(run.outputs)}\n"
+    )
+    for snapshot in run.stages:
+        sha = (snapshot.sha256 or "")[:12]
+        sys.stdout.write(
+            f"      stage {snapshot.stage_index} = {snapshot.stage_name:<14} "
+            f"rows {snapshot.rows}  cols {snapshot.cols}  sha256 {sha}\n"
+        )
+    sys.stdout.write(f"      out  {run.out_dir}\n")
+    sys.stdout.write(NO_VERDICT_NOTE + "\n")
+    return exitcodes.USAGE
+
+
+def _write_failure_hint(error: StageUnavailable | StageFailed) -> None:
+    """把"失败已留痕"这件事说出来；没有留痕就明说没有，不含糊。"""
+    path = getattr(error, "stages_path", None)
+    if path is not None:
+        sys.stderr.write(f"      已在 {path} 写入 failed 记录；整条管线已终止（不跳过、不回落）。\n")
+    else:
+        sys.stderr.write("      未写出 stages.json（失败发生在阶段记录之前）。\n")
+
+
 def _cmd_selftest() -> int:
-    """离线自检：只验内部不变量，不读网络、不写 runs/。"""
+    """离线自检：只验内部不变量，不读网络、不写 runs/。
+
+    M1 起同时报告**四条通道的本机可用性**：不可用的通道在这里显式写出来，
+    这样"Linux 上 excel_com_csv 跑不了"是一件看得见的事实，而不是靠人记住的约定。
+    """
     problems = []
     if rule_count() != 18:
         problems.append(f"rules.json 条数应为 18，实际 {rule_count()}")
@@ -116,6 +194,13 @@ def _cmd_selftest() -> int:
     if problems:
         return exitcodes.USAGE
     sys.stdout.write(f"selftest OK  version={__version__}  rules={rule_count()}  pipelines=4\n")
+    for stage_name in sorted(stages.PROBES):
+        ok, reason = stages.probe(stage_name)
+        sys.stdout.write(
+            f"      stage {stage_name:<14} {'available' if ok else 'UNAVAILABLE'}"
+            + ("" if ok else f"  ({reason})")
+            + "\n"
+        )
     return exitcodes.LOSSLESS
 
 
@@ -151,7 +236,7 @@ def main(argv: list[str] | None = None) -> int:
     if command == "selftest":
         return _cmd_selftest()
     if command == "run":
-        return _not_implemented("run", "M1–M5")
+        return _cmd_run(args.pipeline, args.input, args.key, args.align, args.out_dir)
     if command == "diff":
         return _not_implemented("diff", "M2")
     if command == "attribute":
