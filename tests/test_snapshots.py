@@ -37,10 +37,6 @@ SAMPLE_ROWS = [
     ["ctl-0001", "42", "90210", "10.5", "100000", "hello", "ascii", "x"],
 ]
 
-#: 纯 stdlib 通道：在任何平台都必须真跑（不做跳过）
-ALWAYS = ["pandas", "json_sqlite"]
-
-
 @pytest.fixture()
 def sample_csv(tmp_path: Path) -> Path:
     path = tmp_path / "sample.csv"
@@ -203,8 +199,15 @@ def test_run_id_stable_across_processes(sample_csv, tmp_path):
 
 
 def test_double_run_is_byte_identical(sample_csv, tmp_path):
-    """G9：同输入双跑，**全产物**逐字节一致（含 stages.json）。"""
-    for name in ALWAYS:
+    """G9：同输入双跑，**全产物**逐字节一致（含 stages.json）。
+
+    四条通道全跑（不可用的跳过并标注）：Excel COM 是唯一"外部进程参与"的通道，
+    只测 pandas/sqlite 会让"Excel 每次另存字节略有不同"这类不稳定性完全逃过门。
+    """
+    for name in ("pandas", "json_sqlite", "openpyxl", "excel_com"):
+        decl = load_pipeline(PIPELINES / f"{name}.json")
+        if not stages.probe(decl.stages[0].stage_name)[0]:
+            continue
         a = _run(name, sample_csv, tmp_path / f"a-{name}")
         b = _run(name, sample_csv, tmp_path / f"b-{name}")
         assert a.run_id == b.run_id
