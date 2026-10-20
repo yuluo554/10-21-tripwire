@@ -18,7 +18,8 @@
 | 脱敏门 `tools/check_desensitized.py` | ✅ | 0 命中；变异 4 组全红（同一条脚本） |
 | 可运行骨架 | ✅ | `python -m tripwire --version` / `validate-pipeline pipelines/*.json` / `rules --count` → 18 |
 | 冒烟测试 | ✅ | `python -m pytest -q` → 17 passed |
-| CI workflow | ✅ 已写、**未跑** | `.github/workflows/ci.yml`；**无远端 → CI 待首推验证，不得写"CI 绿"** |
+| 打包自足（sdist 解包可跑） | ✅ | `python -m build --sdist` → 解包到临时目录 → 两门全绿 + `pytest` 17 passed（含 `tools/` 与 `tests/`） |
+| CI workflow | ✅ 已写、**未跑** | `.github/workflows/ci.yml`（`yaml.safe_load` 本地解析通过：2 job / 4+5 step）；**无远端 → CI 待首推验证，不得写"CI 绿"** |
 
 **未发生的事（不许写成已完成）**：没有 git remote、没有 tag、没有 Release、没有跑过一次 CI。
 M1–M6 全部未开工。
@@ -94,6 +95,7 @@ M1–M6 全部未开工。
 - [x] `tripwire --version` / `--help` / `validate-pipeline` / `rules --count` / `selftest` 可运行
 - [x] 未实现子命令 exit 3；`argparse` 参数错误也 exit 3（不冒充门禁失败）
 - [x] `pytest -q` → 17 passed
+- [x] sdist 解包后自足（两门 + pytest 在解包树里全绿）
 - [x] `plan/HANDOFF-M0.md`（本节所在文件）七节齐
 - [x] 4 处状态副本一致（M0 ✅ / M1–M6 ⬜）
 - [ ] CI 首跑 —— **不适用本轮**（无远端）。写"CI 待首推验证"，不写"CI 绿"
