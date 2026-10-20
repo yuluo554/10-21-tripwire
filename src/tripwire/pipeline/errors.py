@@ -41,4 +41,19 @@ class InputNotUtf8(Exception):
     """输入不是合法 UTF-8 文本。首期只承诺 UTF-8：换编码猜原意会破坏确定性纪律。"""
 
 
-__all__ = ["StageUnavailable", "StageFailed", "RunIdCollision", "InputNotUtf8"]
+class RunNotFound(Exception):
+    """`runs/<run_id>/` 不存在、`stages.json` 不可解析、或它记录的阶段快照不在目录里。
+
+    与 `RunIdCollision` 分开：前者是"同 id 不同内容"（写入侧的冲突），
+    后者是"读不到这一份 run"（读取侧的缺失）。把两者混成一类，CLI 就没法给出
+    "该目录不完整"这种可行动的提示。
+    """
+
+
+__all__ = [
+    "StageUnavailable",
+    "StageFailed",
+    "RunIdCollision",
+    "InputNotUtf8",
+    "RunNotFound",
+]

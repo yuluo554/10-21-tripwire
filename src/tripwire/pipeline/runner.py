@@ -22,11 +22,13 @@ from tripwire.pipeline import stages
 from tripwire.pipeline.errors import (
     InputNotUtf8,
     RunIdCollision,
+    RunNotFound,
     StageFailed,
     StageUnavailable,
 )
 from tripwire.pipeline.model import (
     INPUT_STAGE_NAME,
+    RUNTIME_KEYS,
     STATUS_FAILED,
     STATUS_OK,
     ColumnMeta,
@@ -169,6 +171,69 @@ def _from_json(decl: PipelineDecl, run_id: str, input_sha: str, decl_sha: str, r
     )
 
 
+def load_run(run_dir: str | Path) -> RunStages:
+    """从 `runs/<run_id>/stages.json` 重建 `RunStages`（M3 的 `attribute --run-id` 用）。
+
+    为什么不重跑管线来"恢复"状态：重跑会用今天的引擎产出今天的字节，而报告要归因的是
+    **当时那一份产物**。快照文件本身是原始文本（K1），从它们重建视图不引入任何转换。
+
+    失败一律显式：目录/文件缺失、JSON 非法、声明里引用的阶段快照不在 → 抛异常由 CLI 转 exit 3。
+    静默返回半份状态会让归因报出一个"看起来完整"的结论。
+    """
+    run_path = Path(run_dir)
+    stages_json = run_path / STAGES_JSON
+    data = _load_existing(stages_json)
+    if data is None:
+        raise RunNotFound(f"读不到合法的 {stages_json}（目录或文件缺失 / 不是 JSON 对象）")
+
+    items = data.get("stages")
+    if not isinstance(items, list) or not items:
+        raise RunNotFound(f"{stages_json} 没有 stages 列表（或为空），不是一份可用的 run 记录")
+
+    snapshots = tuple(_snapshot_from_json(item, stages_json) for item in items)
+    for snapshot in snapshots:
+        if not snapshot.ok:
+            continue
+        expected = run_path / f"stage-{snapshot.stage_index}.csv"
+        if not expected.is_file():
+            raise RunNotFound(
+                f"{stages_json} 记录了 stage {snapshot.stage_index}（{snapshot.stage_name}），"
+                f"但快照 {expected.name} 不在目录里"
+            )
+    try:
+        return RunStages(
+            run_id=data["run_id"],
+            pipeline_name=data["pipeline"],
+            input_sha256=data["input_sha256"],
+            decl_sha256=data["decl_sha256"],
+            out_dir=run_path,
+            stages=snapshots,
+        )
+    except KeyError as error:
+        raise RunNotFound(f"{stages_json} 缺字段 {error}（不是一份完整的 run 记录）") from error
+
+
+def _snapshot_from_json(item: dict, stages_json: Path) -> StageSnapshot:
+    """`stages.json` 的一条 -> `StageSnapshot`。缺字段一律显式失败，不填默认值蒙过去。"""
+    try:
+        return StageSnapshot(
+            stage_index=item["stage_index"],
+            stage_name=item["stage_name"],
+            columns=tuple(
+                ColumnMeta(name=column["name"], declared_type=column.get("declared_type"))
+                for column in item.get("columns", [])
+            ),
+            rows=item.get("rows"),
+            cols=item.get("cols"),
+            sha256=item.get("sha256"),
+            runtime=RuntimeMeta(**{key: (item.get("runtime") or {}).get(key) for key in RUNTIME_KEYS}),
+            status=item.get("status", STATUS_OK),
+            reason=item.get("reason"),
+        )
+    except (KeyError, TypeError) as error:
+        raise RunNotFound(f"{stages_json} 里有不完整的阶段记录（{error}）") from error
+
+
 def run_pipeline(decl: PipelineDecl, input_csv: str | Path, out_dir: str | Path) -> RunStages:
     """跑一条声明。四条通道都经这里，没有第二条执行路径。"""
     input_path = Path(input_csv)
@@ -259,6 +324,7 @@ __all__ = [
     "STAGES_JSON",
     "compute_run_id",
     "decl_fingerprint",
+    "load_run",
     "record_stage_failure",
     "run_pipeline",
 ]

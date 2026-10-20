@@ -22,10 +22,12 @@ from tripwire.pipeline import runner, stages
 from tripwire.pipeline.errors import (
     InputNotUtf8,
     RunIdCollision,
+    RunNotFound,
     StageFailed,
     StageUnavailable,
 )
 from tripwire.pipeline.schema import PipelineDeclError, load_pipeline, load_pipeline_dict, validate_pipeline_dict
+from tripwire.rules.engine import attribute, explain as explain_line
 from tripwire.rules.predicates import load_rules, rule_count
 from tripwire import serialization
 
@@ -79,6 +81,13 @@ def _build_parser() -> argparse.ArgumentParser:
 
     attribute = subparsers.add_parser("attribute", help="对差异做规则归因（M3）")
     attribute.add_argument("--run-id", required=True)
+    attribute.add_argument("--out-dir", default="runs", help="运行产物目录（默认 runs/）")
+    attribute.add_argument("--key", help="主键列名（必须与产出该 run 时一致；--align key 必需）")
+    attribute.add_argument("--align", choices=("key", "position", "lcs"), default="key")
+    attribute.add_argument("--stage-index", type=int, help="只归因该阶段相对 stage-0 的差异（默认取最后一份输出）")
+    attribute.add_argument("--explain", action="store_true", help="逐条打印归因日志（格式写死）")
+    attribute.add_argument("--fail-on", choices=("unclassified",), help="有 unclassified 即 exit 2（门禁失败）")
+    attribute.add_argument("--json", dest="json_out", help="把归因结果写成 JSON（走 serialization.write_json）")
 
     subparsers.add_parser("gen-fixture", help="生成真值夹具（M4）").add_argument(
         "--seed", type=int, required=True
@@ -176,6 +185,15 @@ def _cmd_run(pipeline: str, input_csv: str, key: str | None, align: str, out_dir
     return exitcodes.USAGE
 
 
+#: `attribute` 的说明：归因有了，但门禁三数（recall/precision）在 M4。
+#: 没有 expected.json 就无法算 recall，报 0/1 等于把"没验过"写成"验过了"。
+NO_GATE_NOTE_ATTRIBUTE = (
+    "NOTE: 归因已算出（M3）；门禁三数（recall/precision/unclassified 口径）与判定在 M4–M5。"
+    "`unclassified` 计数已给出，但**不产出有损/无损判定**——退出码走用法通道 3，"
+    "除非显式 `--fail-on unclassified` 且有 unclassified（门禁失败 → 2）。"
+)
+
+
 def _cmd_diff(
     orig_path: str,
     got_path: str,
@@ -224,6 +242,92 @@ def _cmd_diff(
         sys.stdout.write(f"      json  {json_out}\n")
 
     sys.stdout.write(NO_GATE_NOTE + "\n")
+    return exitcodes.USAGE
+
+
+def _cmd_attribute(
+    run_id: str,
+    out_dir: str,
+    key: str | None,
+    align: str,
+    stage_index: int | None,
+    explain: bool,
+    fail_on: str | None,
+    json_out: str | None,
+) -> int:
+    """对一次 run 的差异做规则归因（M3）。**不产出判定**（门禁三数在 M4；见 `NO_GATE_NOTE_ATTRIBUTE`）。"""
+    run_dir = Path(out_dir) / run_id
+    try:
+        run = runner.load_run(run_dir)
+    except (RunNotFound, OSError) as error:
+        sys.stderr.write(f"FAIL  读不到该 run: {run_dir}\n      - {error}\n")
+        return exitcodes.USAGE
+
+    outputs = [snapshot for snapshot in run.stages if snapshot.stage_index > 0 and snapshot.ok]
+    if not outputs:
+        sys.stderr.write(f"FAIL  {run_dir} 里没有任何成功的输出阶段，无从归因。\n")
+        return exitcodes.USAGE
+    target = stage_index if stage_index is not None else outputs[-1].stage_index
+    if target not in {snapshot.stage_index for snapshot in outputs}:
+        sys.stderr.write(
+            f"FAIL  指定阶段 {target} 不在该 run 的输出里（可用: "
+            f"{', '.join(str(snapshot.stage_index) for snapshot in outputs)}）。\n"
+        )
+        return exitcodes.USAGE
+
+    try:
+        orig, _ = read_csv(run.out_dir / "stage-0.csv")
+        got, _ = read_csv(run.out_dir / f"stage-{target}.csv")
+    except (FileNotFoundError, UnicodeDecodeError) as error:
+        sys.stderr.write(f"FAIL  快照不可读: {error}\n")
+        return exitcodes.USAGE
+
+    try:
+        result = diff_tables(orig, got, strategy=align, key=key, stage_index=target)
+    except DiffError as error:
+        sys.stderr.write(f"FAIL  {error}\n")
+        return exitcodes.USAGE
+
+    attributions = attribute(result.diffs, run, key=key, strategy=align)
+    unclassified = sum(1 for item in attributions if item.unclassified)
+    rules_used = len({item.rule for item in attributions if not item.unclassified})
+
+    sys.stdout.write(
+        f"ATTRIBUTE  run_id {run.run_id}  pipeline {run.pipeline_name}  stage {target} "
+        f"({run.stage(target).stage_name})\n"
+        f"           strategy={result.strategy}  diffs {len(result.diffs)}  "
+        f"rules {rules_used}  unclassified {unclassified}\n"
+    )
+    for item in attributions:
+        sys.stdout.write(
+            f"      {item.fingerprint}  {item.diff.row_key}  {item.diff.col}  "
+            f"{item.rule}"
+            + ("  [UNCLASSIFIED]" if item.unclassified else "")
+            + "\n"
+        )
+        if explain:
+            sys.stdout.write(f"        {explain_line(item)}\n")
+
+    if json_out:
+        serialization.write_json(
+            json_out,
+            {
+                "run_id": run.run_id,
+                "pipeline": run.pipeline_name,
+                "stage_index": target,
+                "strategy": result.strategy,
+                "diffs": len(result.diffs),
+                "unclassified": unclassified,
+                "attributions": [item.to_json() for item in attributions],
+            },
+        )
+        sys.stdout.write(f"      json  {json_out}\n")
+
+    if fail_on == "unclassified" and unclassified:
+        sys.stderr.write(f"GATE FAILED  unclassified {unclassified} > 0（--fail-on unclassified）\n")
+        return exitcodes.GATE_FAILED
+
+    sys.stdout.write(NO_GATE_NOTE_ATTRIBUTE + "\n")
     return exitcodes.USAGE
 
 
@@ -318,7 +422,16 @@ def main(argv: list[str] | None = None) -> int:
     if command == "diff":
         return _cmd_diff(args.orig, args.got, args.key, args.align, args.batch, args.stage_index, args.json_out)
     if command == "attribute":
-        return _not_implemented("attribute", "M3")
+        return _cmd_attribute(
+            args.run_id,
+            args.out_dir,
+            args.key,
+            args.align,
+            args.stage_index,
+            args.explain,
+            args.fail_on,
+            args.json_out,
+        )
     if command == "gen-fixture":
         return _not_implemented("gen-fixture", "M4")
     if command == "report":

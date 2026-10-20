@@ -19,14 +19,15 @@ GATE: recall 1.00 precision 1.00 unclassified 0
 | M0 | 计划与方法论装订 + 可运行骨架 | ✅ |
 | M1 | 往返管线执行器 + 逐段快照 | ✅ |
 | M2 | 单元格级差异引擎 | ✅ |
-| M3 | 归因规则引擎（18 条） | ⬜ |
+| M3 | 归因规则引擎（18 条） | ✅ |
 | M4 | 真值夹具生成器 + 门禁 | ⬜ |
 | M5 | 报告与 CI 出口 | ⬜ |
 | M6 | 脱敏与发布 | ⬜ |
 
-> 开发中。当前可用：`--help` / `--version` / `validate-pipeline` / `rules --count` / `selftest` / **`run`（只跑管线与逐段快照）** / **`diff`（两份快照的单元格级差异 + 四项结构差异）**；`attribute` / `gen-fixture` / `report` 返回退出码 3（用法通道）。
+> 开发中。当前可用：`--help` / `--version` / `validate-pipeline` / `rules --count` / `selftest` / **`run`（只跑管线与逐段快照）** / **`diff`（两份快照的单元格级差异 + 四项结构差异）** / **`attribute`（18 条规则归因 + 环节定位）**；`gen-fixture` / `report` 返回退出码 3（用法通道）。
 >
-> **`run` 与 `diff` 现在都返回 3 而不是 0/1**：退出码 0/1 的语义里都带"门禁通过"，而门禁在 M4。`run` 连差异都没算；`diff` 算了差异但没有门禁。跑通 ≠ 判为无损。
+> **`run` / `diff` / `attribute` 现在都不返回 0/1**：退出码 0/1 的语义里都带"门禁通过"，而门禁三数在 M4。`run` 连差异都没算；`diff` 算了差异但没有门禁；`attribute` 给了规则名与环节但没有 recall/precision。跑通 ≠ 判为无损。
+> 唯一例外：`attribute --fail-on unclassified` 在有 unclassified 时返回 **2**（门禁失败通道）。
 
 ## 安装
 
@@ -47,6 +48,10 @@ tripwire run --pipeline pipelines/json_sqlite.json --input sample.csv --key id
 tripwire diff --orig runs/<run_id>/stage-0.csv --got runs/<run_id>/stage-1.csv --key id
 tripwire diff --orig a.csv --got b.csv --align position    # 显式按位置（插行会连带误报）
 tripwire diff --orig a.csv --got b.csv --key id --batch 100  # 另报 dtype 漂移
+
+# 给一次 run 的差异打上规则名与环节（--explain 逐条打印判定过程）
+tripwire attribute --run-id <run_id> --key id --explain
+tripwire attribute --run-id <run_id> --key id --fail-on unclassified   # 有未归因即 exit 2
 
 # 四条通道各自的损失形态不同（Excel 与 openpyxl 是两个不同阶段）
 tripwire selftest        # 同时报告本机四条通道是否可用

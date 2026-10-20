@@ -4,7 +4,7 @@
 
 - **性质**：不参赛项目题 · 发布 GitHub **公开仓库** · 署名 yuluo554
 - **产出**：仓库 `10-21-tripwire`，CLI 入口 `tripwire`；**纯本地 Python CLI，零网络**
-- **状态**：**M2 完成（单元格级差异引擎 + 对齐三策略）**；M0–M2 已收，M3–M6 未开工。里程碑状态以 §六 表为准
+- **状态**：**M3 完成（18 条归因规则 + 快照序列筛选）**；M0–M3 已收，M4–M6 未开工。里程碑状态以 §六 表为准
 - **定位宣言**："一份数据经过 CSV→Excel→JSON→SQLite 转一圈，哪些值悄悄变了？本工具给逐单元格差异 + 归因规则名 + 证据 + 出问题的环节。" 现有工具要么只做两文件单元格差异但不解释原因，要么只做单文件体检但不做往返对照。
 - **基准日**：2026-10-20（代理实际检索窗口 **2026-10-19T18:35Z–18:57Z**，UTC 仍在 10-19）
 
@@ -27,7 +27,7 @@
 | `README.md`（仓库根） | 用户向：定位 / 快速开始 / 退出码 / 隐私 | ✅ v0 骨架版（M5 补全用法） |
 | `docs/pipeline-schema.md` | 管线声明格式（阶段命名规则、禁止混称 Excel） | ✅（M1） |
 | `docs/diff-schema.md` | 差异记录格式（对齐三策略语义 + `DiffRecord` / `StructureRecord` 形状） | ✅（M2） |
-| `docs/rules.md` | 18 条规则人类可读表（含证据要求与反例） | ⬜ 待 M3 |
+| `docs/rules.md` | 18 条规则人类可读表（含证据要求与反例） | ✅（M3） |
 | `docs/fixture-pools.md` | 三组样本池构造纪律 | ⬜ 待 M4 |
 
 > 状态图例：✅ 已落盘 · 🟡 进行中 · ⬜ 待做。**状态列必须与里程碑同步翻转**（同一提交里改）。
@@ -74,9 +74,9 @@
 | 运行时指纹（pandas/openpyxl/Excel Build/SQLite 版本 + dtype） | ✅ 本机可读 | 随 `stages.json` 落盘 | 快照元数据字段齐全性测试 | ✅ M1 |
 | 单元格级差异 + 四项结构差异 | 真 Excel 复现 9 单元格（✅） | 纯本地 | 原型 14 单元格 / 9 差异复现 | ✅ M2 |
 | 无主键拒绝运行（exit 3） | 决策 D3 | 纯本地 | 退出码测试 | ✅ M2 |
-| 18 条归因规则 | 官方文档 4 条 + 本机实测 13 条（见 data/README 台账） | 规则表随包 | 原型 9/9 命中，unclassified=0 | ⬜ M3 |
-| 归因由快照序列筛选（非硬编码顺序） | 设计 | 纯本地 | 构造"同规则不同环节"用例，`resolved_stage` 应不同 | ⬜ M3 |
-| `unclassified` 一等公民 + `--fail-on` | 决策 D4 | CLI 开关 | 退出码与计数测试 | ⬜ M3 |
+| 18 条归因规则 | 官方文档 4 条 + 本机实测 13 条（见 data/README 台账） | 规则表随包 | 原型 9/9 命中，unclassified=0 | ✅ M3 |
+| 归因由快照序列筛选（非硬编码顺序） | 设计 | 纯本地 | 构造"同规则不同环节"用例，`resolved_stage` 应不同 | ✅ M3 |
+| `unclassified` 一等公民 + `--fail-on` | 决策 D4 | CLI 开关 | 退出码与计数测试 | ✅ M3 |
 | 三组样本池 + `expected.json` | 全程序化合成 | 随包生成器 | 同 seed 逐字节复现 | ⬜ M4 |
 | 门禁三数（recall/precision/unclassified） | 决策 D4 | 报告首屏 | `control-lossless` 组零误报 | ⬜ M4 |
 | MD/JSON/SARIF 同源 + 首屏三段 | 设计 | 纯本地 | 三份差异集合一致性测试 | ⬜ M5 |
@@ -138,7 +138,7 @@
 | **M0 · 计划与装订** | `plan/00–06` + `data/README` + `AGENTS.md` + 布局门 + 脱敏门 + 可运行骨架（CLI / 写盘单点 / 管线声明校验）+ 冒烟测试 | 布局门全绿且 10 组变异全红；脱敏门 0 命中且 4 组变异全红；`tripwire --help/--version/validate-pipeline/rules --count` 可运行；未实现子命令 exit 3；`pytest -q` 绿 | ✅ |
 | **M1 · 数据先行** | 三族管线执行器 + `stages.json` + 逐段文本快照 + 运行时指纹。**先做 Excel COM 通道真机验证**（Windows），再补 `openpyxl_csv` 作为可跑的 fallback 通道（**两个不同 stage 名**） | 三条管线各跑通一次；`stages.json` 含每阶段列类型/行列数/内容哈希；`stage-<k>.csv` 为原始文本且哈希可复算；缺依赖时显式失败 | ✅ |
 | **M2 · 差异引擎** | 对齐三策略（`key` 默认 / `position` / `lcs`）+ 四项结构差异 + `--batch` dtype 漂移吸收 | 未给主键 exit 3；原型 9 差异可复现；差异排序稳定（两次运行逐字节一致） | ✅ |
-| **M3 · 归因规则** | 18 条四族规则 + 快照序列筛选 + `unclassified` 一等公民 + `--fail-on` | 原型 9/9 命中、unclassified=0；构造"同规则不同环节"用例 `resolved_stage` 不同；`--explain` 日志格式符合 `data/README` 口径 | ⬜ |
+| **M3 · 归因规则** | 18 条四族规则 + 快照序列筛选 + `unclassified` 一等公民 + `--fail-on` | 原型 9/9 命中、unclassified=0；构造"同规则不同环节"用例 `resolved_stage` 不同；`--explain` 日志格式符合 `data/README` 口径 | ✅ |
 | **M4 · 夹具与门禁** | `gen-fixture` 三组样本池 + `expected.json` + 门禁三数 | 同 seed 逐字节一致（两层）；`control-lossless` 组零误报；三数任一不满足 exit 2；三数打印在报告首屏 | ⬜ |
 | **M5 · 报告与 CI 出口** | MD/JSON/SARIF 同源 + 首屏三段 + 退出码 0/1/2/3 + stable fingerprint | 三格式差异集合一致；四条退出码各一条测试；同输入两次 run 的 fingerprint 集合相等；`tripwire --help` 可运行 | ⬜ |
 | **M6 · 脱敏与发布** | 公开仓库发布 | **`git tag` + GitHub Release（附产物：sdist + wheel + `SHA256SUMS`）+ 发布留档 `plan/RELEASE-M6.md`（在 tag 之前落盘进 tag 树，两栏 + 阶段 7 覆盖对账）**；`python tools/check_desensitized.py` 0 命中 | ⬜ |
