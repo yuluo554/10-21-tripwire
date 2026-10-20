@@ -15,10 +15,16 @@ from pathlib import Path
 
 @dataclass(frozen=True)
 class CsvTable:
-    """一张 CSV 表的原文视图。`header` 与 `rows` 都是**原始字符串**，不做类型推断。"""
+    """一张 CSV 表的原文视图。`header` 与 `rows` 都是**原始字符串**，不做类型推断。
+
+    `text` 保留"这张视图是从哪段原文切出来的"。M2 的 `--batch` 需要把**原文**交给
+    分块读取器；若从 `rows` 重新序列化一遍，比较前就替它归一了一次（K1），
+    所以原文必须随视图一起走，而不是回头再拼。
+    """
 
     header: tuple[str, ...]
     rows: tuple[tuple[str, ...], ...]
+    text: str | None = None
 
     @property
     def cols(self) -> int:
@@ -59,8 +65,8 @@ def parse_csv_text(text: str) -> CsvTable:
     reader = csv.reader(io.StringIO(text, newline=""))
     records = [tuple(cell for cell in record) for record in reader]
     if not records:
-        return CsvTable(header=(), rows=())
-    return CsvTable(header=records[0], rows=tuple(records[1:]))
+        return CsvTable(header=(), rows=(), text=text)
+    return CsvTable(header=records[0], rows=tuple(records[1:]), text=text)
 
 
 def read_csv(path: str | Path) -> tuple[CsvTable, str]:

@@ -2,10 +2,10 @@
 
 两条退出码纪律（口径单点是 `data/README.md` §6.3，代码侧单点是 `exitcodes.py`）：
 1. `argparse` 的 `SystemExit(2)` 一律在 `main()` 内转成 3——否则"参数写错"会被读成"门禁失败"。
-2. **判定通道只在真有判定时才用**：`run` 目前只执行管线（差异与门禁在 M2–M5），
-   因此它**不返回 0**——0 的语义是"无损（无差异且门禁通过）"，此刻没有任何差异被算过，
-   返回 0 就是伪造结论。M1 期间 `run` 一律走用法通道 3，同时在输出里把
-   "管线已跑通 + 产物在哪" 与 "拒绝判定" 两件事分开写，避免与真失败混淆。
+2. **判定通道只在真有判定时才用**：0/1 的定义里都带"门禁通过"，而门禁在 M4。
+   因此 M1 的 `run` 与 M2 的 `diff` 都**不返回 0/1**——差异算出来了也只说"算出来了多少条"，
+   不说"无损/有损"。M1 期间 `run` 连差异都没算，M2 起 `diff` 算了差异但没有门禁；
+   两者都走用法通道 3，并在输出里把"做了什么"与"拒绝判定"分开写。
 """
 
 from __future__ import annotations
@@ -16,6 +16,8 @@ from pathlib import Path
 
 from tripwire import __version__
 from tripwire import exitcodes
+from tripwire.csvio import read_csv
+from tripwire.diff import DiffError, diff_tables
 from tripwire.pipeline import runner, stages
 from tripwire.pipeline.errors import (
     InputNotUtf8,
@@ -25,6 +27,7 @@ from tripwire.pipeline.errors import (
 )
 from tripwire.pipeline.schema import PipelineDeclError, load_pipeline, load_pipeline_dict, validate_pipeline_dict
 from tripwire.rules.predicates import load_rules, rule_count
+from tripwire import serialization
 
 PROG = "tripwire"
 
@@ -32,6 +35,13 @@ PROG = "tripwire"
 NO_VERDICT_NOTE = (
     "NOTE: 本次只执行管线（M1）；差异引擎与门禁在 M2–M5，故**不产出有损/无损判定**，"
     "退出码走用法通道 3（拒绝判定）而非 0（无损）。"
+)
+
+#: `diff` 的同类说明：差异算出来了，但 0/1 的语义里带"门禁通过"，而门禁在 M4。
+#: 没有门禁就报 0 或 1，等于把"没验过"写成"验过了"。
+NO_GATE_NOTE = (
+    "NOTE: 差异已算出（M2）；门禁三数与判定在 M4–M5，故**不产出有损/无损判定**，"
+    "退出码走用法通道 3（拒绝判定）而非 0/1。"
 )
 
 
@@ -59,10 +69,13 @@ def _build_parser() -> argparse.ArgumentParser:
     run.add_argument("--out-dir", default="runs", help="运行产物目录（默认 runs/）")
 
     diff = subparsers.add_parser("diff", help="对两份快照做单元格级差异（M2）")
-    diff.add_argument("--orig", required=True)
-    diff.add_argument("--got", required=True)
-    diff.add_argument("--key")
+    diff.add_argument("--orig", required=True, help="原始快照 CSV（通常是 stage-0.csv）")
+    diff.add_argument("--got", required=True, help="往返后快照 CSV（通常是 stage-<k>.csv）")
+    diff.add_argument("--key", help="主键列名（--align key 必需）")
     diff.add_argument("--align", choices=("key", "position", "lcs"), default="key")
+    diff.add_argument("--batch", type=int, help="按 N 行分块推断类型，不一致落 dtype_drift 结构记录")
+    diff.add_argument("--stage-index", type=int, help="把该差异归属到哪个输出阶段序号（1-based）")
+    diff.add_argument("--json", dest="json_out", help="把 DiffResult 写成 JSON（走 serialization.write_json）")
 
     attribute = subparsers.add_parser("attribute", help="对差异做规则归因（M3）")
     attribute.add_argument("--run-id", required=True)
@@ -163,6 +176,71 @@ def _cmd_run(pipeline: str, input_csv: str, key: str | None, align: str, out_dir
     return exitcodes.USAGE
 
 
+def _cmd_diff(
+    orig_path: str,
+    got_path: str,
+    key: str | None,
+    align: str,
+    batch: int | None,
+    stage_index: int | None,
+    json_out: str | None,
+) -> int:
+    """对两份快照做单元格级差异（M2）。**不产出判定**（门禁在 M4；见 `NO_GATE_NOTE`）。"""
+    try:
+        orig, _ = read_csv(orig_path)
+        got, _ = read_csv(got_path)
+    except (FileNotFoundError, UnicodeDecodeError) as error:
+        sys.stderr.write(f"FAIL  快照不可读: {error}\n")
+        return exitcodes.USAGE
+
+    try:
+        result = diff_tables(
+            orig,
+            got,
+            strategy=align,
+            key=key,
+            batch=batch,
+            stage_index=stage_index,
+        )
+    except DiffError as error:
+        # K4/D3：拒绝运行要走 exit 3，且**不产出任何差异结论**（不写 --json，也不打印 0 条）
+        sys.stderr.write(f"FAIL  {error}\n")
+        return exitcodes.USAGE
+
+    sys.stdout.write(
+        f"DIFF  strategy={result.strategy}  rows {result.rows_compared}  cells {result.cells_compared}  "
+        f"diffs {len(result.diffs)}  structures {len(result.structures)}\n"
+    )
+    for record in result.diffs:
+        sys.stdout.write(
+            f"      {record.row_key}  {record.col}[{record.col_index}]  "
+            f"{record.orig_text!r} -> {record.got_text!r}\n"
+        )
+    for structure in result.structures:
+        sys.stdout.write(f"      STRUCT {structure.kind}  {_structure_summary(structure.detail)}\n")
+
+    if json_out:
+        serialization.write_json(json_out, result.to_json())
+        sys.stdout.write(f"      json  {json_out}\n")
+
+    sys.stdout.write(NO_GATE_NOTE + "\n")
+    return exitcodes.USAGE
+
+
+def _structure_summary(detail) -> str:
+    """结构记录的一句话摘要。只写**这一条结构差异**的信息，不掺单元格差异数。"""
+    parts = []
+    for key in ("orig", "got", "added", "removed", "side", "col", "types"):
+        if key in detail:
+            value = detail[key]
+            parts.append(f"{key}={value}")
+    if "missing_rows" in detail and detail["missing_rows"]:
+        parts.append(f"missing_rows={detail['missing_rows']}")
+    if "extra_rows" in detail and detail["extra_rows"]:
+        parts.append(f"extra_rows={detail['extra_rows']}")
+    return " ".join(parts)
+
+
 def _write_failure_hint(error: StageUnavailable | StageFailed) -> None:
     """把"失败已留痕"这件事说出来；没有留痕就明说没有，不含糊。"""
     path = getattr(error, "stages_path", None)
@@ -238,7 +316,7 @@ def main(argv: list[str] | None = None) -> int:
     if command == "run":
         return _cmd_run(args.pipeline, args.input, args.key, args.align, args.out_dir)
     if command == "diff":
-        return _not_implemented("diff", "M2")
+        return _cmd_diff(args.orig, args.got, args.key, args.align, args.batch, args.stage_index, args.json_out)
     if command == "attribute":
         return _not_implemented("attribute", "M3")
     if command == "gen-fixture":

@@ -53,7 +53,7 @@ def test_missing_required_arg_is_usage_error_not_gate_failure():
 
 
 def test_unimplemented_commands_exit_3():
-    assert main(["diff", "--orig", "a.csv", "--got", "b.csv"]) == exitcodes.USAGE
+    """仍在骨架期的三个子命令走用法通道。`diff` 已在 M2 接线，不在此列。"""
     assert main(["attribute", "--run-id", "x"]) == exitcodes.USAGE
     assert main(["gen-fixture", "--seed", "42"]) == exitcodes.USAGE
     assert main(["report", "--run-id", "x"]) == exitcodes.USAGE

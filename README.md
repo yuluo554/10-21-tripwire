@@ -18,15 +18,15 @@ GATE: recall 1.00 precision 1.00 unclassified 0
 |---|---|---|
 | M0 | 计划与方法论装订 + 可运行骨架 | ✅ |
 | M1 | 往返管线执行器 + 逐段快照 | ✅ |
-| M2 | 单元格级差异引擎 | ⬜ |
+| M2 | 单元格级差异引擎 | ✅ |
 | M3 | 归因规则引擎（18 条） | ⬜ |
 | M4 | 真值夹具生成器 + 门禁 | ⬜ |
 | M5 | 报告与 CI 出口 | ⬜ |
 | M6 | 脱敏与发布 | ⬜ |
 
-> 开发中。当前可用：`--help` / `--version` / `validate-pipeline` / `rules --count` / `selftest` / **`run`（只跑管线与逐段快照，不产出判定）**；`diff` / `attribute` / `gen-fixture` / `report` 返回退出码 3（用法通道）。
+> 开发中。当前可用：`--help` / `--version` / `validate-pipeline` / `rules --count` / `selftest` / **`run`（只跑管线与逐段快照）** / **`diff`（两份快照的单元格级差异 + 四项结构差异）**；`attribute` / `gen-fixture` / `report` 返回退出码 3（用法通道）。
 >
-> **`run` 现在返回 3 而不是 0**：退出码 0 的语义是"无损"，而差异引擎与门禁尚未接线，此刻没有任何差异被算过。跑通 ≠ 判为无损。
+> **`run` 与 `diff` 现在都返回 3 而不是 0/1**：退出码 0/1 的语义里都带"门禁通过"，而门禁在 M4。`run` 连差异都没算；`diff` 算了差异但没有门禁。跑通 ≠ 判为无损。
 
 ## 安装
 
@@ -42,6 +42,11 @@ tripwire validate-pipeline pipelines/pandas.json
 
 # 跑一条往返管线，落 runs/<run_id>/stage-<k>.csv + stages.json
 tripwire run --pipeline pipelines/json_sqlite.json --input sample.csv --key id
+
+# 对往返前后的两份快照做单元格级差异（默认按主键对齐；无 --key 拒绝运行）
+tripwire diff --orig runs/<run_id>/stage-0.csv --got runs/<run_id>/stage-1.csv --key id
+tripwire diff --orig a.csv --got b.csv --align position    # 显式按位置（插行会连带误报）
+tripwire diff --orig a.csv --got b.csv --key id --batch 100  # 另报 dtype 漂移
 
 # 四条通道各自的损失形态不同（Excel 与 openpyxl 是两个不同阶段）
 tripwire selftest        # 同时报告本机四条通道是否可用
