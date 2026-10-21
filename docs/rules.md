@@ -118,12 +118,42 @@ rule=<name>, first_seen_at=stage 1 (excel_com_csv), candidates=[...] -> resolved
 
 ## 六、覆盖情况（不假装）
 
+**在真实管线上观察到正例**（`fixtures/golden/` 的 `expected.json`，seed 42 / 200 行，可复算）：
+
+| # | 规则 | 正例来自哪条通道 |
+|---|---|---|
+| 1 | `leading_zero_lost` | `pandas_csv` / `json_sqlite_csv` / `excel_com_csv` |
+| 2 | `scientific_notation_coercion` | `excel_com_csv`（+ 19 位那档还有 `openpyxl_csv`） |
+| 4 | `int53_overflow` | `excel_com_csv` |
+| 5 | `excel_15_digit_truncation` | `excel_com_csv` |
+| 6 | `negative_zero_sign_lost` | `pandas_csv` / `json_sqlite_csv` / `excel_com_csv` |
+| 7 | `decimal_trailing_zero_dropped` | `pandas_csv` / `json_sqlite_csv` / `excel_com_csv` |
+| 8 | `exponent_form_normalized` | `excel_com_csv` |
+| 9 | `empty_vs_null_vs_missing` | `pandas_csv` |
+| 15 | `date_retyped_to_text` | `excel_com_csv` |
+| 17 | `serial_60_phantom_date` | `excel_com_csv` |
+
+**本 seed 下没有正例**（`expected.json` 的 `uncovered_rules` **点名**，理由见 `docs/fixture-pools.md` §六）：
+
+| # | 规则 | 为什么点不出来 | 补齐路径 |
+|---|---|---|---|
+| 3 | `float_precision_truncated` | 候选不含 `excel_com_csv`，而 Excel 真的会改这类定点小数 → 越界 | 改 `possible_stages`（M4 无授权）或改形态 |
+| 10 | `null_token_collision` | 只要它命中，`id` 更小的 #9 必先命中 → 被遮蔽 | 结构性 |
+| 11 | `unicode_normalization_changed` | 四条 CSV 通道都不做 Unicode 归一 | 需专门的读取路径 |
+| 12 | `whitespace_collapsed` | 候选不含 `json_sqlite_csv` / `excel_com_csv`，而这两条都会裁空白 → 越界 | 改 `possible_stages`（M4 无授权） |
+| 13 | `bom_prepended` | 四条通道都不在原值前加 BOM | 需专门的写入路径 |
+| 14 | `encoding_mojibake` | 四条通道都按 UTF-8 原样读写，不产生乱码 | 需非 UTF-8 路径 |
+| 16 | `date_system_shift_1904` | 需要 1904 纪元切换的 Excel 实例 | 靠单测构造（M3 已做，`test_1904_shift_needs_exactly_1462_days`） |
+| 18 | `number_format_dropped` | 四条 CSV 通道都不产出单元格级 `number_format` | 二期 xlsx 读回通道（**不改谓词**） |
+
+> **"点不出来"是结论，不是欠债**：上表每一条都说明了为什么，并给出补齐路径。
+> 「18 条规则每条至少 1 条正例 + 1 条反例」这条要求（`plan/04` §四）在**首期四条 CSV 通道**下
+> 无法全部满足——这恰恰是 `uncovered_rules` 要暴露的事实。**不为了让它们变绿去放宽谓词**（D4）。
+
 | 项 | 状态 |
 |---|---|
 | 18 条谓词全部实现、全部纯函数 | ✅ `test_every_predicate_is_pure_function` |
-| 在真实管线上**观察到正例**的规则 | #1 #2 #3 #4 #5 #6 #7 #8 #9 #10 #11 #12 #13 #14 #15 #17（原型样本 + 合成断言） |
-| 需要 `stage_meta` 才有正例 | #18（四条 CSV 通道都不报 `number_format`） |
-| 需要构造特定输入才有正例 | #16（1904 纪元切换）——原型样本里没有，靠单测构造 |
-
-`expected.json` 的 `uncovered_rules` 字段（M4）会把"某个 seed 下没有正例"的规则点名，
-到那时这张表的第三行会自动变成可复算的结论，而不是人肉记录。
+| `expected.json` 的规则 ∪ `uncovered_rules` == 18 条 | ✅ `test_golden_expected_covers_every_rules_json_entry` |
+| 每条被点名的规则都有登记理由 | ✅ `test_uncovered_rules_are_documented` |
+| 门禁三数在四条通道上全绿（recall 1.00 / precision 1.00 / unclassified 0） | ✅ `test_gate_passes_on_real_channel`（Excel COM 不可用时显式 skip 并标注） |
+| `control-lossless` 组 0 差异 | ✅ `test_control_lossless_zero_false_positive` |

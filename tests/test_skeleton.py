@@ -53,9 +53,13 @@ def test_missing_required_arg_is_usage_error_not_gate_failure():
 
 
 def test_unimplemented_commands_exit_3():
-    """仍在骨架期的三个子命令走用法通道。`diff` 已在 M2 接线，不在此列。"""
+    """仍在骨架期的子命令走用法通道。`diff`(M2) / `attribute`(M3) / `gen-fixture`(M4) 都已接线，不在此列。
+
+    **`gen-fixture` 特意不在这里**：它一跑就会往 `fixtures/out/` 落文件——测试有副作用正是
+    方法论要防的形态（"一次普通 pytest 静默改坏工作树"）。它的行为由 `tests/test_fixture.py`
+    在 `tmp_path` 里测。
+    """
     assert main(["attribute", "--run-id", "x"]) == exitcodes.USAGE
-    assert main(["gen-fixture", "--seed", "42"]) == exitcodes.USAGE
     assert main(["report", "--run-id", "x"]) == exitcodes.USAGE
 
 

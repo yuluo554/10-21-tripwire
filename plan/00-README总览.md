@@ -4,7 +4,7 @@
 
 - **性质**：不参赛项目题 · 发布 GitHub **公开仓库** · 署名 yuluo554
 - **产出**：仓库 `10-21-tripwire`，CLI 入口 `tripwire`；**纯本地 Python CLI，零网络**
-- **状态**：**M3 完成（18 条归因规则 + 快照序列筛选）**；M0–M3 已收，M4–M6 未开工。里程碑状态以 §六 表为准
+- **状态**：**M4 完成（真值夹具生成器 + 门禁三数）**；M0–M4 已收，M5–M6 未开工。里程碑状态以 §六 表为准
 - **定位宣言**："一份数据经过 CSV→Excel→JSON→SQLite 转一圈，哪些值悄悄变了？本工具给逐单元格差异 + 归因规则名 + 证据 + 出问题的环节。" 现有工具要么只做两文件单元格差异但不解释原因，要么只做单文件体检但不做往返对照。
 - **基准日**：2026-10-20（代理实际检索窗口 **2026-10-19T18:35Z–18:57Z**，UTC 仍在 10-19）
 
@@ -28,7 +28,7 @@
 | `docs/pipeline-schema.md` | 管线声明格式（阶段命名规则、禁止混称 Excel） | ✅（M1） |
 | `docs/diff-schema.md` | 差异记录格式（对齐三策略语义 + `DiffRecord` / `StructureRecord` 形状） | ✅（M2） |
 | `docs/rules.md` | 18 条规则人类可读表（含证据要求与反例） | ✅（M3） |
-| `docs/fixture-pools.md` | 三组样本池构造纪律 | ⬜ 待 M4 |
+| `docs/fixture-pools.md` | 三组样本池构造纪律 | ✅（M4） |
 
 > 状态图例：✅ 已落盘 · 🟡 进行中 · ⬜ 待做。**状态列必须与里程碑同步翻转**（同一提交里改）。
 
@@ -48,6 +48,14 @@
 | 2026-10-20 | **D8·首期三族管线，四类数据通道** | CSV / XLSX（经 Excel 或 openpyxl）/ JSON / SQLite。**不含 YAML/TOML 配置通道**（避开配置 diff 题域），也不含 MessagePack（二期）。 |
 | 2026-10-20 | **D9·18 条规则首期定稿，规则表机器可读** | 放 `src/tripwire/rules/rules.json`，代码只引用不复述；`docs/rules.md` 为人类可读副本但**数值口径仍以 `data/README.md` 第六节为唯一真相源**。 |
 | 2026-10-20 | **D10·不写会漂移的硬数字** | plan/01 只写规则口径与门槛来源；"20 万随机 double 回环失败率 45.36%/93.92%"属**极端位模式样本**，**不写进代码、不进报告默认输出**，只作 `data/README.md` 的核验记录并显式标注样本性质。 |
+
+### M4 新增决策
+
+| 日期 | 决策 | 结论与理由 |
+|---|---|---|
+| 2026-10-21 | **D16·样本形态的合法判据 = "变了的通道集合 ⊆ 该规则的 `possible_stages`"** | `rules.json` 的 `possible_stages` 是归因候选；D1 会把"变化发生在候选外"降级成 `unclassified`。于是**某些形态无论怎么挑都会被降级**——那不是规则错，是样本不该长那样。`rules.json` 已冻结（M4 不得改候选），所以 M4 只能靠**挑形态**让门禁成立，挑不出来的**如实点名**进 `uncovered_rules`（8 条，理由见 `docs/fixture-pools.md` §六）。**禁止为了让它们变绿去放宽谓词**（D4）。 |
+| 2026-10-21 | **D17·夹具表必须稠密（每行每列都有值）** | pandas 的 dtype 推断按列：列里一个空格就把整列推成 `float64`，控制组的 `94016` 被写成 `94016.0`（假差异），precision 当场失败。M4 实测稀疏表得 59 条控制组差异。判别 = "这一列的 dtype，是我决定的还是被某个空格决定的？" |
+| 2026-10-21 | **D18·`gate` 是第一条真正的判定通道；`run`/`diff`/`attribute` 维持 exit 3** | 0/1 的语义里带"门禁通过"，只有 `gate` 同时拿到 expected 与 attributions。`run` 连差异都没算、`diff` 算了但没有真值、`attribute` 有规则名但没有 recall/precision——它们报 0/1 就是"把没验过写成验过了"（D13 的延伸）。`attribute --fail-on unclassified` 仍是**门禁失败的局部形态**，不构成完整判定。 |
 
 ### 弃选项（写题期评估后不采用）
 
@@ -77,8 +85,8 @@
 | 18 条归因规则 | 官方文档 4 条 + 本机实测 13 条（见 data/README 台账） | 规则表随包 | 原型 9/9 命中，unclassified=0 | ✅ M3 |
 | 归因由快照序列筛选（非硬编码顺序） | 设计 | 纯本地 | 构造"同规则不同环节"用例，`resolved_stage` 应不同 | ✅ M3 |
 | `unclassified` 一等公民 + `--fail-on` | 决策 D4 | CLI 开关 | 退出码与计数测试 | ✅ M3 |
-| 三组样本池 + `expected.json` | 全程序化合成 | 随包生成器 | 同 seed 逐字节复现 | ⬜ M4 |
-| 门禁三数（recall/precision/unclassified） | 决策 D4 | 报告首屏 | `control-lossless` 组零误报 | ⬜ M4 |
+| 三组样本池 + `expected.json` | 全程序化合成 | 随包生成器 | 同 seed 逐字节复现 | ✅ M4 |
+| 门禁三数（recall/precision/unclassified） | 决策 D4 | 报告首屏 | `control-lossless` 组零误报 | ✅ M4 |
 | MD/JSON/SARIF 同源 + 首屏三段 | 设计 | 纯本地 | 三份差异集合一致性测试 | ⬜ M5 |
 | 退出码 0/1/2/3 | 设计 | CLI 契约 | 四条退出码各一条测试 | ⬜ M5 |
 | stable fingerprint 跨 run diff | 设计 | 报告 JSON | 同输入两次 run 的 fingerprint 集合相等 | ⬜ M5 |
@@ -104,7 +112,7 @@
 | 归因规则名 | `tripwire attribute` 的 `Attribution.rule` | `tests/test_rules.py::test_nine_of_nine_classified` |
 | 证据 | `Attribution.evidence`（orig/got/stage 指纹三元组） | `tests/test_rules.py::test_every_attribution_has_evidence` |
 | 出问题的环节 | `Attribution.resolved_stage` + `--explain` 日志 `first_seen_at=...` | `tests/test_rules.py::test_first_seen_stage_from_snapshot_sequence` |
-| `unclassified` 计数 | 报告首屏 `GATE` 行 + `--fail-on unclassified` 退出码 | `tests/test_gate.py::test_fail_on_unclassified_exits_2` |
+| `unclassified` 计数 | 报告首屏 `GATE` 行 + `--fail-on unclassified` 退出码 | `tests/test_rules.py::test_cli_attribute_fail_on_unclassified_exits_2`（归因入口）+ `tests/test_gate.py::test_gate_fails_on_unclassified`（门禁口径） |
 | 真值夹具与门禁三数 | `tripwire gen-fixture --seed 42 --rows 200` + `tripwire gate` | `tests/test_fixture.py::test_same_seed_byte_identical`、`tests/test_gate.py::test_control_lossless_zero_false_positive` |
 | 三格式报告 | `tripwire report --format md,json,sarif` | `tests/test_report.py::test_three_formats_same_findings` |
 
@@ -123,8 +131,9 @@
 | 18 条规则（机器可读） | `src/tripwire/rules/rules.json` | M3 | `git ls-files src/tripwire/rules/rules.json`；`tripwire rules --count` 输出 18 |
 | 18 条规则（人类可读） | `docs/rules.md` | M3 | `git ls-files docs/rules.md` |
 | 夹具生成器 | `src/tripwire/fixtures.py` | M4 | `git ls-files src/tripwire/fixtures.py` |
-| 夹具金样本（seed 42 / 200 行） | `fixtures/golden/orig.csv`、`fixtures/golden/expected.json` | M4 | `git ls-files fixtures/golden/` |
+| 夹具金样本（seed 42 / 200 行） | `fixtures/golden/orig.csv`、`fixtures/golden/expected.json`、`fixtures/golden/manifest.json` | M4 | `git ls-files fixtures/golden/` |
 | 样本池构造纪律 | `docs/fixture-pools.md` | M4 | `git ls-files docs/fixture-pools.md` |
+| 门禁三数实现 | `src/tripwire/gate.py` | M4 | `git ls-files src/tripwire/gate.py`；`tripwire gate --help` |
 | 发布留档 | `plan/RELEASE-M6.md` | M6 | `git cat-file -e <tag>:plan/RELEASE-M6.md` |
 
 > **每一项都必须指得到一个文件**；指不出的现在就删，不留到评分表里变成无主承诺。
@@ -139,7 +148,7 @@
 | **M1 · 数据先行** | 三族管线执行器 + `stages.json` + 逐段文本快照 + 运行时指纹。**先做 Excel COM 通道真机验证**（Windows），再补 `openpyxl_csv` 作为可跑的 fallback 通道（**两个不同 stage 名**） | 三条管线各跑通一次；`stages.json` 含每阶段列类型/行列数/内容哈希；`stage-<k>.csv` 为原始文本且哈希可复算；缺依赖时显式失败 | ✅ |
 | **M2 · 差异引擎** | 对齐三策略（`key` 默认 / `position` / `lcs`）+ 四项结构差异 + `--batch` dtype 漂移吸收 | 未给主键 exit 3；原型 9 差异可复现；差异排序稳定（两次运行逐字节一致） | ✅ |
 | **M3 · 归因规则** | 18 条四族规则 + 快照序列筛选 + `unclassified` 一等公民 + `--fail-on` | 原型 9/9 命中、unclassified=0；构造"同规则不同环节"用例 `resolved_stage` 不同；`--explain` 日志格式符合 `data/README` 口径 | ✅ |
-| **M4 · 夹具与门禁** | `gen-fixture` 三组样本池 + `expected.json` + 门禁三数 | 同 seed 逐字节一致（两层）；`control-lossless` 组零误报；三数任一不满足 exit 2；三数打印在报告首屏 | ⬜ |
+| **M4 · 夹具与门禁** | `gen-fixture` 三组样本池 + `expected.json` + 门禁三数 | 同 seed 逐字节一致（两层）；`control-lossless` 组零误报；三数任一不满足 exit 2；三数打印在报告首屏 | ✅ |
 | **M5 · 报告与 CI 出口** | MD/JSON/SARIF 同源 + 首屏三段 + 退出码 0/1/2/3 + stable fingerprint | 三格式差异集合一致；四条退出码各一条测试；同输入两次 run 的 fingerprint 集合相等；`tripwire --help` 可运行 | ⬜ |
 | **M6 · 脱敏与发布** | 公开仓库发布 | **`git tag` + GitHub Release（附产物：sdist + wheel + `SHA256SUMS`）+ 发布留档 `plan/RELEASE-M6.md`（在 tag 之前落盘进 tag 树，两栏 + 阶段 7 覆盖对账）**；`python tools/check_desensitized.py` 0 命中 | ⬜ |
 

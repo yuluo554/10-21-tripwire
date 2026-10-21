@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -89,9 +90,25 @@ def _build_parser() -> argparse.ArgumentParser:
     attribute.add_argument("--fail-on", choices=("unclassified",), help="有 unclassified 即 exit 2（门禁失败）")
     attribute.add_argument("--json", dest="json_out", help="把归因结果写成 JSON（走 serialization.write_json）")
 
-    subparsers.add_parser("gen-fixture", help="生成真值夹具（M4）").add_argument(
-        "--seed", type=int, required=True
+    fixture = subparsers.add_parser("gen-fixture", help="生成真值夹具（M4）")
+    fixture.add_argument("--seed", type=int, default=42, help="随机种子（默认 42：金样本留档值）")
+    fixture.add_argument("--rows", type=int, default=200, help="总行数（默认 200：金样本留档规模）")
+    fixture.add_argument("--out-dir", default="fixtures/out", help="落点目录（默认 fixtures/out/）")
+    fixture.add_argument(
+        "--pool",
+        dest="pools",
+        action="append",
+        choices=("numeric", "semantic", "control"),
+        help="只生成某个池（可重复）：**部分运行不写 manifest.json**，也不覆盖 expected.json",
     )
+
+    gate = subparsers.add_parser("gate", help="对一次 run 算门禁三数（M4）")
+    gate.add_argument("--run-id", required=True)
+    gate.add_argument("--out-dir", default="runs", help="运行产物目录（默认 runs/）")
+    gate.add_argument("--expected", required=True, help="真值文件（expected.json）")
+    gate.add_argument("--key", help="主键列名（必须与产出该 run 时一致）")
+    gate.add_argument("--align", choices=("key", "position", "lcs"), default="key")
+    gate.add_argument("--stage-index", type=int, help="只对该阶段算（默认取最后一份输出）")
 
     report = subparsers.add_parser("report", help="渲染 MD/JSON/SARIF（M5）")
     report.add_argument("--run-id", required=True)
@@ -331,6 +348,147 @@ def _cmd_attribute(
     return exitcodes.USAGE
 
 
+def _cmd_gen_fixture(seed: int, rows: int, out_dir: str, pools: list[str] | None) -> int:
+    """生成真值夹具（M4）。**不产出判定**：夹具是门禁的输入，不是门禁的结论。"""
+    from tripwire.fixtures import generate, POOL_CONTROL, POOL_NUMERIC, POOL_SEMANTIC
+
+    alias = {"numeric": POOL_NUMERIC, "semantic": POOL_SEMANTIC, "control": POOL_CONTROL}
+    selected = [alias[name] for name in pools] if pools else None
+
+    try:
+        result = generate(seed, rows, out_dir, pools=selected)
+    except (ValueError, OSError) as error:
+        sys.stderr.write(f"FAIL  夹具生成失败: {error}\n")
+        return exitcodes.USAGE
+
+    sys.stdout.write(
+        f"PASS  gen-fixture  seed {result.seed}  rows {result.rows}  "
+        f"pools {', '.join(f'{name}={count}' for name, count in result.pools.items())}\n"
+    )
+    sys.stdout.write(f"      cells {len(result.cells)}  orig {result.orig_path}\n")
+    if result.wrote_manifest:
+        sys.stdout.write(f"      expected {result.expected_path}\n      manifest {result.manifest_path}\n")
+    else:
+        sys.stdout.write(
+            "      NOTE: 部分运行（--pool）**不写** manifest.json / expected.json："
+            "入仓清单只该由全集生成写出（plan/04 §五.5）。\n"
+        )
+    if result.uncovered_rules:
+        sys.stdout.write(
+            f"      UNCOVERED  {len(result.uncovered_rules)} 条规则在本 seed 下无正例: "
+            f"{', '.join(result.uncovered_rules)}\n"
+        )
+    return exitcodes.LOSSLESS
+
+
+def _cmd_gate(
+    run_id: str,
+    out_dir: str,
+    expected_path: str,
+    key: str | None,
+    align: str,
+    stage_index: int | None,
+) -> int:
+    """算门禁三数并判定（M4）。**这是第一条真正的判定通道**：0/1/2。
+
+    - 0 = 无损（0 条差异 且 门禁通过）
+    - 1 = 有损（有差异 且 门禁通过）
+    - 2 = 门禁失败（recall / precision / unclassified 任一不满足）
+    - 3 = 用法错误（读不到 run / 真值文件 / 缺 --key）
+    """
+    from tripwire.gate import compute_gate
+    from tripwire.rules.engine import attribute
+
+    run_dir = Path(out_dir) / run_id
+    try:
+        run = runner.load_run(run_dir)
+    except (RunNotFound, OSError) as error:
+        sys.stderr.write(f"FAIL  读不到该 run: {run_dir}\n      - {error}\n")
+        return exitcodes.USAGE
+
+    try:
+        with open(expected_path, "r", encoding="utf-8", newline="") as handle:
+            expected_payload = json.loads(handle.read())
+    except (OSError, json.JSONDecodeError) as error:
+        sys.stderr.write(f"FAIL  真值文件不可读: {expected_path}\n      - {error}\n")
+        return exitcodes.USAGE
+    if not isinstance(expected_payload, dict) or not isinstance(expected_payload.get("cells"), list):
+        sys.stderr.write(f"FAIL  {expected_path} 不是一份 expected.json（缺 cells 列表）\n")
+        return exitcodes.USAGE
+
+    if align == "key" and not key:
+        sys.stderr.write("FAIL  未声明主键：--align key 需要 --key <列名>。\n")
+        return exitcodes.USAGE
+
+    outputs = [snapshot for snapshot in run.stages if snapshot.stage_index > 0 and snapshot.ok]
+    if not outputs:
+        sys.stderr.write(f"FAIL  {run_dir} 里没有任何成功的输出阶段，无从判定。\n")
+        return exitcodes.USAGE
+    target = stage_index if stage_index is not None else outputs[-1].stage_index
+    if target not in {snapshot.stage_index for snapshot in outputs}:
+        sys.stderr.write(
+            f"FAIL  指定阶段 {target} 不在该 run 的输出里（可用: "
+            f"{', '.join(str(snapshot.stage_index) for snapshot in outputs)}）。\n"
+        )
+        return exitcodes.USAGE
+
+    try:
+        orig, _ = read_csv(run.out_dir / "stage-0.csv")
+        got, _ = read_csv(run.out_dir / f"stage-{target}.csv")
+    except (FileNotFoundError, UnicodeDecodeError) as error:
+        sys.stderr.write(f"FAIL  快照不可读: {error}\n")
+        return exitcodes.USAGE
+
+    try:
+        result = diff_tables(orig, got, strategy=align, key=key, stage_index=target)
+    except DiffError as error:
+        sys.stderr.write(f"FAIL  {error}\n")
+        return exitcodes.USAGE
+
+    stage_name = run.stage(target).stage_name
+    attributions = attribute(result.diffs, run, key=key, strategy=align)
+    gate = compute_gate(expected_payload["cells"], attributions, stage_name=stage_name)
+
+    sys.stdout.write(
+        f"GATE RUN  run_id {run.run_id}  pipeline {run.pipeline_name}  "
+        f"stage {target} ({stage_name})\n"
+    )
+    sys.stdout.write(f"           {gate.line()}\n")
+    sys.stdout.write(
+        f"           cells expected {gate.expected}  reported {gate.reported}  matched {gate.matched}"
+        f"  missing {len(gate.missing)}  unexpected {len(gate.unexpected)}"
+        f"  wrong_rule {len(gate.wrong_rule)}\n"
+    )
+    for item in gate.missing[:20]:
+        sys.stdout.write(
+            f"      MISSING     {item.row_key}  {item.col}  expected {item.expected_text!r}"
+            f"  rule {item.rule}\n"
+        )
+    for item in gate.unexpected[:20]:
+        sys.stdout.write(
+            f"      UNEXPECTED  {item.row_key}  {item.col}  got {item.got_text!r}  rule {item.rule}\n"
+        )
+    for item in gate.wrong_rule[:20]:
+        sys.stdout.write(
+            f"      WRONG RULE  {item.row_key}  {item.col}  expected {item.expected_rule}"
+            f"  actual {item.actual_rule}\n"
+        )
+
+    if gate.vacuous:
+        sys.stdout.write(
+            "      NOTE: 本次 0 条差异 —— 门禁「通过」是空跑通过，不代表覆盖了任何样本。\n"
+        )
+
+    if not gate.passed:
+        sys.stderr.write(
+            f"GATE FAILED  recall {gate.recall:.2f} / precision {gate.precision:.2f} / "
+            f"unclassified {gate.unclassified}（三者须同时满足，data/README §6.2）\n"
+        )
+        return exitcodes.GATE_FAILED
+
+    return exitcodes.LOSSLESS if not result.diffs and not result.structures else exitcodes.LOSSY
+
+
 def _structure_summary(detail) -> str:
     """结构记录的一句话摘要。只写**这一条结构差异**的信息，不掺单元格差异数。"""
     parts = []
@@ -433,7 +591,16 @@ def main(argv: list[str] | None = None) -> int:
             args.json_out,
         )
     if command == "gen-fixture":
-        return _not_implemented("gen-fixture", "M4")
+        return _cmd_gen_fixture(args.seed, args.rows, args.out_dir, args.pools)
+    if command == "gate":
+        return _cmd_gate(
+            args.run_id,
+            args.out_dir,
+            args.expected,
+            args.key,
+            args.align,
+            args.stage_index,
+        )
     if command == "report":
         return _not_implemented("report", "M5")
 

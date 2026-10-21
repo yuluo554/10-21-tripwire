@@ -1,0 +1,201 @@
+id,num_big,zip,decimal,exponent,date,text_unicode,nullable
+sem-1,12345,94016,12.5,2.5,1900-02-29,lorem,present
+num-1,12345,-0 ,12.5,2.5,notadate,lorem,present
+num-2,12345,94016,12.5,2.5e+21,notadate,lorem,present
+ctl-1,12345,94016,12.5,2.5,notadate,lorem,present
+num-3,12345,94016,12.5,3.5e+21,notadate,lorem,present
+num-4,12345,94016,45.10 ,2.5,notadate,lorem,present
+ctl-2,67890,10001,3.25,4.5,plaintext,ipsum,filled
+sem-2,12345,00123,12.5,2.5,notadate,lorem,present
+sem-3,12345,94016,12.5,2.5,1999-12-31,lorem,present
+num-5,1234567890123456,94016,12.5,2.5,notadate,lorem,present
+num-6,12345,94016,12.5,7.5e+21,notadate,lorem,present
+ctl-3,24680,60601,0.75,0.5,worddate,dolor,stated
+ctl-4,31415,33101,48.5,6.25,nodateat,amet,given
+ctl-5,54321,80202,7.25,8.75,dateless,consect,supplied
+num-7,2500000000000000000,94016,12.5,2.5,notadate,lorem,present
+ctl-6,13579,98101,96.75,1.5,calendr,adipis,noted
+ctl-7,12345,94016,12.5,2.5,notadate,lorem,present
+sem-4,12345,08080,12.5,2.5,notadate,lorem,present
+num-8,12345,94016,45.10 ,2.5,notadate,lorem,present
+sem-5,12345,94016,12.5,2.5,1900-02-29,lorem,present
+sem-6,12345,94016,12.5,2.5,1987-07-04,lorem,present
+sem-7,12345,94016,12.5,2.5,1987-07-04,lorem,present
+ctl-8,67890,10001,3.25,4.5,plaintext,ipsum,filled
+sem-8,12345,94016,12.5,2.5,1900-02-29,lorem,present
+sem-9,12345,00123,12.5,2.5,notadate,lorem,present
+sem-10,12345,00123,12.5,2.5,notadate,lorem,present
+num-9,9007199254740994,94016,12.5,2.5,notadate,lorem,present
+num-10,12345,-0 ,12.5,2.5,notadate,lorem,present
+ctl-9,24680,60601,0.75,0.5,worddate,dolor,stated
+sem-11,12345,02114,12.5,2.5,notadate,lorem,present
+num-11,1234567890123457,94016,12.5,2.5,notadate,lorem,present
+sem-12,12345,08080,12.5,2.5,notadate,lorem,present
+sem-13,12345,02114,12.5,2.5,notadate,lorem,present
+ctl-10,31415,33101,48.5,6.25,nodateat,amet,given
+num-12,1234567890123457,94016,12.5,2.5,notadate,lorem,present
+ctl-11,54321,80202,7.25,8.75,dateless,consect,supplied
+sem-14,12345,94016,12.5,2.5,1900-02-29,lorem,present
+ctl-12,13579,98101,96.75,1.5,calendr,adipis,noted
+ctl-13,12345,94016,12.5,2.5,notadate,lorem,present
+num-13,1234567890123457,94016,12.5,2.5,notadate,lorem,present
+ctl-14,67890,10001,3.25,4.5,plaintext,ipsum,filled
+ctl-15,24680,60601,0.75,0.5,worddate,dolor,stated
+num-14,12345,94016,12.5,1.25e+30,notadate,lorem,present
+num-15,12345,94016,12.5,7.5e+21,notadate,lorem,present
+ctl-16,31415,33101,48.5,6.25,nodateat,amet,given
+ctl-17,54321,80202,7.25,8.75,dateless,consect,supplied
+sem-15,12345,94016,12.5,2.5,1900-02-29,lorem,present
+sem-16,12345,94016,12.5,2.5,2000-01-01,lorem,present
+sem-17,12345,94016,12.5,2.5,notadate,lorem,NULL
+num-16,7500000000000000,94016,12.5,2.5,notadate,lorem,present
+sem-18,12345,00777,12.5,2.5,notadate,lorem,present
+ctl-18,13579,98101,96.75,1.5,calendr,adipis,noted
+sem-19,12345,00777,12.5,2.5,notadate,lorem,present
+ctl-19,12345,94016,12.5,2.5,notadate,lorem,present
+ctl-20,67890,10001,3.25,4.5,plaintext,ipsum,filled
+sem-20,12345,94016,12.5,2.5,notadate,lorem,NaN
+num-17,9007199254740996,94016,12.5,2.5,notadate,lorem,present
+sem-21,12345,94016,12.5,2.5,1900-02-29,lorem,present
+ctl-21,24680,60601,0.75,0.5,worddate,dolor,stated
+ctl-22,31415,33101,48.5,6.25,nodateat,amet,given
+sem-22,12345,94016,12.5,2.5,notadate,lorem,NaN
+sem-23,12345,02114,12.5,2.5,notadate,lorem,present
+num-18,4500000000000000,94016,12.5,2.5,notadate,lorem,present
+sem-24,12345,94016,12.5,2.5,1987-07-04,lorem,present
+sem-25,12345,94016,12.5,2.5,1999-12-31,lorem,present
+num-19,12345,94016,12.5,1.5e+22,notadate,lorem,present
+sem-26,12345,94016,12.5,2.5,notadate,lorem,NA
+sem-27,12345,94016,12.5,2.5,1987-07-04,lorem,present
+num-20,1234567890123456,94016,12.5,2.5,notadate,lorem,present
+sem-28,12345,94016,12.5,2.5,notadate,lorem,n/a
+ctl-23,54321,80202,7.25,8.75,dateless,consect,supplied
+sem-29,12345,94016,12.5,2.5,notadate,café,present
+sem-30,12345,94016,12.5,2.5,1900-02-29,lorem,present
+ctl-24,13579,98101,96.75,1.5,calendr,adipis,noted
+ctl-25,12345,94016,12.5,2.5,notadate,lorem,present
+sem-31,12345,94016,12.5,2.5,notadate,lorem,NULL
+num-21,12345,94016,120.70 ,2.5,notadate,lorem,present
+sem-32,12345,94016,12.5,2.5,notadate,lorem,NA
+num-22,9007199254740992,94016,12.5,2.5,notadate,lorem,present
+sem-33,12345,94016,12.5,2.5,notadate,lorem,n/a
+sem-34,12345,01111,12.5,2.5,notadate,lorem,present
+num-23,12345,-0 ,12.5,2.5,notadate,lorem,present
+ctl-26,67890,10001,3.25,4.5,plaintext,ipsum,filled
+num-24,12345,-0 ,12.5,2.5,notadate,lorem,present
+sem-35,12345,94016,12.5,2.5,1987-07-04,lorem,present
+num-25,9007199254740996,94016,12.5,2.5,notadate,lorem,present
+sem-36,12345,94016,12.5,2.5,notadate,lorem,NA
+ctl-27,24680,60601,0.75,0.5,worddate,dolor,stated
+ctl-28,31415,33101,48.5,6.25,nodateat,amet,given
+ctl-29,54321,80202,7.25,8.75,dateless,consect,supplied
+ctl-30,13579,98101,96.75,1.5,calendr,adipis,noted
+ctl-31,12345,94016,12.5,2.5,notadate,lorem,present
+sem-37,12345,01111,12.5,2.5,notadate,lorem,present
+sem-38,12345,94016,12.5,2.5,2000-01-01,lorem,present
+ctl-32,67890,10001,3.25,4.5,plaintext,ipsum,filled
+sem-39,12345,94016,12.5,2.5,1900-02-29,lorem,present
+sem-40,12345,94016,12.5,2.5,notadate,lorem,NA
+sem-41,12345,94016,12.5,2.5,1987-07-04,lorem,present
+sem-42,12345,94016,12.5,2.5,1900-02-29,lorem,present
+ctl-33,24680,60601,0.75,0.5,worddate,dolor,stated
+sem-43,12345,94016,12.5,2.5,1900-02-29,lorem,present
+sem-44,12345,94016,12.5,2.5,notadate,lorem,NA
+ctl-34,31415,33101,48.5,6.25,nodateat,amet,given
+num-26,12345,-0 ,12.5,2.5,notadate,lorem,present
+sem-45,12345,02114,12.5,2.5,notadate,lorem,present
+sem-46,12345,94016,12.5,2.5,1900-02-29,lorem,present
+ctl-35,54321,80202,7.25,8.75,dateless,consect,supplied
+ctl-36,13579,98101,96.75,1.5,calendr,adipis,noted
+num-27,12345,-0 ,12.5,2.5,notadate,lorem,present
+sem-47,12345,94016,12.5,2.5,notadate,lorem,NaN
+sem-48,12345,94016,12.5,2.5,notadate,café,present
+num-28,4500000000000000,94016,12.5,2.5,notadate,lorem,present
+num-29,12345,94016,12.5,7.5e+21,notadate,lorem,present
+sem-49,12345,94016,12.5,2.5,1900-02-29,lorem,present
+sem-50,12345,94016,12.5,2.5,1999-12-31,lorem,present
+sem-51,12345,94016,12.5,2.5,notadate,lorem,NULL
+ctl-37,12345,94016,12.5,2.5,notadate,lorem,present
+sem-52,12345,94016,12.5,2.5,notadate,lorem,n/a
+num-30,12345,94016,7.20 ,2.5,notadate,lorem,present
+num-31,12345,94016,19.90 ,2.5,notadate,lorem,present
+num-32,12345,-0 ,12.5,2.5,notadate,lorem,present
+ctl-38,67890,10001,3.25,4.5,plaintext,ipsum,filled
+sem-53,12345,94016,12.5,2.5,notadate,lorem,n/a
+num-33,4500000000000000,94016,12.5,2.5,notadate,lorem,present
+sem-54,12345,94016,12.5,2.5,1900-02-29,lorem,present
+num-34,2500000000000000000,94016,12.5,2.5,notadate,lorem,present
+num-35,1234567890123457,94016,12.5,2.5,notadate,lorem,present
+sem-55,12345,94016,12.5,2.5,1999-12-31,lorem,present
+ctl-39,24680,60601,0.75,0.5,worddate,dolor,stated
+num-36,12345,94016,7.20 ,2.5,notadate,lorem,present
+num-37,9007199254740992,94016,12.5,2.5,notadate,lorem,present
+num-38,12345,94016,12.5,1.5e+22,notadate,lorem,present
+num-39,1234567890123456,94016,12.5,2.5,notadate,lorem,present
+ctl-40,31415,33101,48.5,6.25,nodateat,amet,given
+num-40,12345,-0 ,12.5,2.5,notadate,lorem,present
+sem-56,12345,94016,12.5,2.5,notadate,lorem,NaN
+ctl-41,54321,80202,7.25,8.75,dateless,consect,supplied
+ctl-42,13579,98101,96.75,1.5,calendr,adipis,noted
+num-41,12345,94016,45.10 ,2.5,notadate,lorem,present
+ctl-43,12345,94016,12.5,2.5,notadate,lorem,present
+ctl-44,67890,10001,3.25,4.5,plaintext,ipsum,filled
+ctl-45,24680,60601,0.75,0.5,worddate,dolor,stated
+ctl-46,31415,33101,48.5,6.25,nodateat,amet,given
+num-42,12345,-0 ,12.5,2.5,notadate,lorem,present
+sem-57,12345,00123,12.5,2.5,notadate,lorem,present
+ctl-47,54321,80202,7.25,8.75,dateless,consect,supplied
+num-43,4500000000000000,94016,12.5,2.5,notadate,lorem,present
+ctl-48,13579,98101,96.75,1.5,calendr,adipis,noted
+num-44,4500000000000000,94016,12.5,2.5,notadate,lorem,present
+num-45,12345,-0 ,12.5,2.5,notadate,lorem,present
+sem-58,12345,01111,12.5,2.5,notadate,lorem,present
+sem-59,12345,08080,12.5,2.5,notadate,lorem,present
+ctl-49,12345,94016,12.5,2.5,notadate,lorem,present
+sem-60,12345,94016,12.5,2.5,2024-01-02,lorem,present
+ctl-50,67890,10001,3.25,4.5,plaintext,ipsum,filled
+ctl-51,24680,60601,0.75,0.5,worddate,dolor,stated
+sem-61,12345,94016,12.5,2.5,notadate,café,present
+ctl-52,31415,33101,48.5,6.25,nodateat,amet,given
+ctl-53,54321,80202,7.25,8.75,dateless,consect,supplied
+sem-62,12345,01111,12.5,2.5,notadate,lorem,present
+ctl-54,13579,98101,96.75,1.5,calendr,adipis,noted
+num-46,12345,94016,45.10 ,2.5,notadate,lorem,present
+num-47,12345,94016,12.5,1.25e+30,notadate,lorem,present
+ctl-55,12345,94016,12.5,2.5,notadate,lorem,present
+num-48,12345,94016,12.5,7.5e+21,notadate,lorem,present
+sem-63,12345,94016,12.5,2.5,notadate,lorem,NULL
+num-49,1500000000000000000,94016,12.5,2.5,notadate,lorem,present
+num-50,12345,94016,120.70 ,2.5,notadate,lorem,present
+num-51,12345,-0 ,12.5,2.5,notadate,lorem,present
+num-52,9007199254740996,94016,12.5,2.5,notadate,lorem,present
+sem-64,12345,94016,12.5,2.5,notadate,café,present
+ctl-56,67890,10001,3.25,4.5,plaintext,ipsum,filled
+num-53,12345,94016,19.90 ,2.5,notadate,lorem,present
+sem-65,12345,94016,12.5,2.5,notadate,café,present
+sem-66,12345,94016,12.5,2.5,1987-07-04,lorem,present
+sem-67,12345,94016,12.5,2.5,2024-01-02,lorem,present
+sem-68,12345,94016,12.5,2.5,1987-07-04,lorem,present
+num-54,12345,94016,3.50 ,2.5,notadate,lorem,present
+num-55,12345,94016,7.20 ,2.5,notadate,lorem,present
+sem-69,12345,94016,12.5,2.5,notadate,café,present
+num-56,2500000000000000000,94016,12.5,2.5,notadate,lorem,present
+sem-70,12345,94016,12.5,2.5,notadate,café,present
+sem-71,12345,94016,12.5,2.5,notadate,lorem,n/a
+ctl-57,24680,60601,0.75,0.5,worddate,dolor,stated
+num-57,2500000000000000000,94016,12.5,2.5,notadate,lorem,present
+ctl-58,31415,33101,48.5,6.25,nodateat,amet,given
+ctl-59,54321,80202,7.25,8.75,dateless,consect,supplied
+sem-72,12345,94016,12.5,2.5,1900-02-29,lorem,present
+num-58,12345,94016,19.90 ,2.5,notadate,lorem,present
+sem-73,12345,94016,12.5,2.5,1900-02-29,lorem,present
+sem-74,12345,02114,12.5,2.5,notadate,lorem,present
+sem-75,12345,94016,12.5,2.5,notadate,lorem,n/a
+ctl-60,13579,98101,96.75,1.5,calendr,adipis,noted
+sem-76,12345,94016,12.5,2.5,notadate,café,present
+sem-77,12345,02114,12.5,2.5,notadate,lorem,present
+sem-78,12345,94016,12.5,2.5,1900-02-29,lorem,present
+num-59,12345,94016,0.50 ,2.5,notadate,lorem,present
+sem-79,12345,94016,12.5,2.5,notadate,lorem,NULL
+sem-80,12345,08080,12.5,2.5,notadate,lorem,present
+num-60,9007199254740994,94016,12.5,2.5,notadate,lorem,present

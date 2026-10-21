@@ -20,14 +20,14 @@ GATE: recall 1.00 precision 1.00 unclassified 0
 | M1 | 往返管线执行器 + 逐段快照 | ✅ |
 | M2 | 单元格级差异引擎 | ✅ |
 | M3 | 归因规则引擎（18 条） | ✅ |
-| M4 | 真值夹具生成器 + 门禁 | ⬜ |
+| M4 | 真值夹具生成器 + 门禁 | ✅ |
 | M5 | 报告与 CI 出口 | ⬜ |
 | M6 | 脱敏与发布 | ⬜ |
 
-> 开发中。当前可用：`--help` / `--version` / `validate-pipeline` / `rules --count` / `selftest` / **`run`（只跑管线与逐段快照）** / **`diff`（两份快照的单元格级差异 + 四项结构差异）** / **`attribute`（18 条规则归因 + 环节定位）**；`gen-fixture` / `report` 返回退出码 3（用法通道）。
+> 开发中。当前可用：`--help` / `--version` / `validate-pipeline` / `rules --count` / `selftest` / **`run`（只跑管线与逐段快照）** / **`diff`（两份快照的单元格级差异 + 四项结构差异）** / **`attribute`（18 条规则归因 + 环节定位）** / **`gen-fixture`（真值夹具生成器）** / **`gate`（门禁三数判定：0/1/2）**；`report` 返回退出码 3（用法通道）。
 >
-> **`run` / `diff` / `attribute` 现在都不返回 0/1**：退出码 0/1 的语义里都带"门禁通过"，而门禁三数在 M4。`run` 连差异都没算；`diff` 算了差异但没有门禁；`attribute` 给了规则名与环节但没有 recall/precision。跑通 ≠ 判为无损。
-> 唯一例外：`attribute --fail-on unclassified` 在有 unclassified 时返回 **2**（门禁失败通道）。
+> **`run` / `diff` / `attribute` 都不返回 0/1**：退出码 0/1 的语义里都带"门禁通过"，而只有 `gate` 同时拿到真值与归因。`run` 连差异都没算；`diff` 算了差异但没有真值；`attribute` 给了规则名与环节但没有 recall/precision。跑通 ≠ 判为无损。
+> 判定通道只有两处出口：**`gate`（0/1/2）** 与 `attribute --fail-on unclassified`（局部：有 unclassified 时返回 2）。
 
 ## 安装
 
@@ -55,6 +55,11 @@ tripwire attribute --run-id <run_id> --key id --fail-on unclassified   # 有未�
 
 # 四条通道各自的损失形态不同（Excel 与 openpyxl 是两个不同阶段）
 tripwire selftest        # 同时报告本机四条通道是否可用
+
+# 真值夹具（三组样本池）+ 门禁判定
+tripwire gen-fixture --seed 42 --rows 200 --out-dir fixtures/golden   # 金样本；也可只生成某一池
+tripwire run --pipeline pipelines/excel_com.json --input fixtures/golden/orig.csv --key id
+tripwire gate --run-id <run_id> --expected fixtures/golden/expected.json --key id   # 0 无损 / 1 有损 / 2 门禁失败
 ```
 
 ## 退出码

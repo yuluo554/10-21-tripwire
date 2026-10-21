@@ -1,0 +1,15 @@
+{
+  "files": {
+    "expected.json": "616f46cd394c0e74deeb2ecea6b58642f183a7131c9777d4afed05ac51b97ef5",
+    "orig.csv": "cde927cb7596ecdc882c12daf0020fcc4b102d8b86ce4369a7df610346dfcaf4"
+  },
+  "generator_version": "0.1.0.dev0",
+  "pools": {
+    "canary-numeric": 60,
+    "canary-semantic": 80,
+    "control-lossless": 60
+  },
+  "rows": 200,
+  "seed": 42,
+  "truth_schema_version": 1
+}

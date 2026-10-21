@@ -1,0 +1,1718 @@
+{
+  "cells": [
+    {
+      "cell": [
+        "num-1",
+        "zip"
+      ],
+      "orig": "-0 ",
+      "p_after": {
+        "excel_com_csv": "0",
+        "json_sqlite_csv": "0",
+        "pandas_csv": "0"
+      },
+      "pool": "canary-numeric",
+      "rule": "negative_zero_sign_lost"
+    },
+    {
+      "cell": [
+        "num-10",
+        "zip"
+      ],
+      "orig": "-0 ",
+      "p_after": {
+        "excel_com_csv": "0",
+        "json_sqlite_csv": "0",
+        "pandas_csv": "0"
+      },
+      "pool": "canary-numeric",
+      "rule": "negative_zero_sign_lost"
+    },
+    {
+      "cell": [
+        "num-11",
+        "num_big"
+      ],
+      "orig": "1234567890123457",
+      "p_after": {
+        "excel_com_csv": "1.23457E+15"
+      },
+      "pool": "canary-numeric",
+      "rule": "excel_15_digit_truncation"
+    },
+    {
+      "cell": [
+        "num-12",
+        "num_big"
+      ],
+      "orig": "1234567890123457",
+      "p_after": {
+        "excel_com_csv": "1.23457E+15"
+      },
+      "pool": "canary-numeric",
+      "rule": "excel_15_digit_truncation"
+    },
+    {
+      "cell": [
+        "num-13",
+        "num_big"
+      ],
+      "orig": "1234567890123457",
+      "p_after": {
+        "excel_com_csv": "1.23457E+15"
+      },
+      "pool": "canary-numeric",
+      "rule": "excel_15_digit_truncation"
+    },
+    {
+      "cell": [
+        "num-14",
+        "exponent"
+      ],
+      "orig": "1.25e+30",
+      "p_after": {
+        "excel_com_csv": "1.25E+30"
+      },
+      "pool": "canary-numeric",
+      "rule": "exponent_form_normalized"
+    },
+    {
+      "cell": [
+        "num-15",
+        "exponent"
+      ],
+      "orig": "7.5e+21",
+      "p_after": {
+        "excel_com_csv": "7.50E+21"
+      },
+      "pool": "canary-numeric",
+      "rule": "exponent_form_normalized"
+    },
+    {
+      "cell": [
+        "num-16",
+        "num_big"
+      ],
+      "orig": "7500000000000000",
+      "p_after": {
+        "excel_com_csv": "7.5E+15"
+      },
+      "pool": "canary-numeric",
+      "rule": "scientific_notation_coercion"
+    },
+    {
+      "cell": [
+        "num-17",
+        "num_big"
+      ],
+      "orig": "9007199254740996",
+      "p_after": {
+        "excel_com_csv": "9.0072E+15"
+      },
+      "pool": "canary-numeric",
+      "rule": "int53_overflow"
+    },
+    {
+      "cell": [
+        "num-18",
+        "num_big"
+      ],
+      "orig": "4500000000000000",
+      "p_after": {
+        "excel_com_csv": "4.5E+15"
+      },
+      "pool": "canary-numeric",
+      "rule": "scientific_notation_coercion"
+    },
+    {
+      "cell": [
+        "num-19",
+        "exponent"
+      ],
+      "orig": "1.5e+22",
+      "p_after": {
+        "excel_com_csv": "1.50E+22"
+      },
+      "pool": "canary-numeric",
+      "rule": "exponent_form_normalized"
+    },
+    {
+      "cell": [
+        "num-2",
+        "exponent"
+      ],
+      "orig": "2.5e+21",
+      "p_after": {
+        "excel_com_csv": "2.50E+21"
+      },
+      "pool": "canary-numeric",
+      "rule": "exponent_form_normalized"
+    },
+    {
+      "cell": [
+        "num-20",
+        "num_big"
+      ],
+      "orig": "1234567890123456",
+      "p_after": {
+        "excel_com_csv": "1.23457E+15"
+      },
+      "pool": "canary-numeric",
+      "rule": "excel_15_digit_truncation"
+    },
+    {
+      "cell": [
+        "num-21",
+        "decimal"
+      ],
+      "orig": "120.70 ",
+      "p_after": {
+        "excel_com_csv": "120.7",
+        "json_sqlite_csv": "120.7",
+        "pandas_csv": "120.7"
+      },
+      "pool": "canary-numeric",
+      "rule": "decimal_trailing_zero_dropped"
+    },
+    {
+      "cell": [
+        "num-22",
+        "num_big"
+      ],
+      "orig": "9007199254740992",
+      "p_after": {
+        "excel_com_csv": "9.0072E+15"
+      },
+      "pool": "canary-numeric",
+      "rule": "int53_overflow"
+    },
+    {
+      "cell": [
+        "num-23",
+        "zip"
+      ],
+      "orig": "-0 ",
+      "p_after": {
+        "excel_com_csv": "0",
+        "json_sqlite_csv": "0",
+        "pandas_csv": "0"
+      },
+      "pool": "canary-numeric",
+      "rule": "negative_zero_sign_lost"
+    },
+    {
+      "cell": [
+        "num-24",
+        "zip"
+      ],
+      "orig": "-0 ",
+      "p_after": {
+        "excel_com_csv": "0",
+        "json_sqlite_csv": "0",
+        "pandas_csv": "0"
+      },
+      "pool": "canary-numeric",
+      "rule": "negative_zero_sign_lost"
+    },
+    {
+      "cell": [
+        "num-25",
+        "num_big"
+      ],
+      "orig": "9007199254740996",
+      "p_after": {
+        "excel_com_csv": "9.0072E+15"
+      },
+      "pool": "canary-numeric",
+      "rule": "int53_overflow"
+    },
+    {
+      "cell": [
+        "num-26",
+        "zip"
+      ],
+      "orig": "-0 ",
+      "p_after": {
+        "excel_com_csv": "0",
+        "json_sqlite_csv": "0",
+        "pandas_csv": "0"
+      },
+      "pool": "canary-numeric",
+      "rule": "negative_zero_sign_lost"
+    },
+    {
+      "cell": [
+        "num-27",
+        "zip"
+      ],
+      "orig": "-0 ",
+      "p_after": {
+        "excel_com_csv": "0",
+        "json_sqlite_csv": "0",
+        "pandas_csv": "0"
+      },
+      "pool": "canary-numeric",
+      "rule": "negative_zero_sign_lost"
+    },
+    {
+      "cell": [
+        "num-28",
+        "num_big"
+      ],
+      "orig": "4500000000000000",
+      "p_after": {
+        "excel_com_csv": "4.5E+15"
+      },
+      "pool": "canary-numeric",
+      "rule": "scientific_notation_coercion"
+    },
+    {
+      "cell": [
+        "num-29",
+        "exponent"
+      ],
+      "orig": "7.5e+21",
+      "p_after": {
+        "excel_com_csv": "7.50E+21"
+      },
+      "pool": "canary-numeric",
+      "rule": "exponent_form_normalized"
+    },
+    {
+      "cell": [
+        "num-3",
+        "exponent"
+      ],
+      "orig": "3.5e+21",
+      "p_after": {
+        "excel_com_csv": "3.50E+21"
+      },
+      "pool": "canary-numeric",
+      "rule": "exponent_form_normalized"
+    },
+    {
+      "cell": [
+        "num-30",
+        "decimal"
+      ],
+      "orig": "7.20 ",
+      "p_after": {
+        "excel_com_csv": "7.2",
+        "json_sqlite_csv": "7.2",
+        "pandas_csv": "7.2"
+      },
+      "pool": "canary-numeric",
+      "rule": "decimal_trailing_zero_dropped"
+    },
+    {
+      "cell": [
+        "num-31",
+        "decimal"
+      ],
+      "orig": "19.90 ",
+      "p_after": {
+        "excel_com_csv": "19.9",
+        "json_sqlite_csv": "19.9",
+        "pandas_csv": "19.9"
+      },
+      "pool": "canary-numeric",
+      "rule": "decimal_trailing_zero_dropped"
+    },
+    {
+      "cell": [
+        "num-32",
+        "zip"
+      ],
+      "orig": "-0 ",
+      "p_after": {
+        "excel_com_csv": "0",
+        "json_sqlite_csv": "0",
+        "pandas_csv": "0"
+      },
+      "pool": "canary-numeric",
+      "rule": "negative_zero_sign_lost"
+    },
+    {
+      "cell": [
+        "num-33",
+        "num_big"
+      ],
+      "orig": "4500000000000000",
+      "p_after": {
+        "excel_com_csv": "4.5E+15"
+      },
+      "pool": "canary-numeric",
+      "rule": "scientific_notation_coercion"
+    },
+    {
+      "cell": [
+        "num-34",
+        "num_big"
+      ],
+      "orig": "2500000000000000000",
+      "p_after": {
+        "excel_com_csv": "2.5E+18",
+        "openpyxl_csv": "2.5e+18"
+      },
+      "pool": "canary-numeric",
+      "rule": "scientific_notation_coercion"
+    },
+    {
+      "cell": [
+        "num-35",
+        "num_big"
+      ],
+      "orig": "1234567890123457",
+      "p_after": {
+        "excel_com_csv": "1.23457E+15"
+      },
+      "pool": "canary-numeric",
+      "rule": "excel_15_digit_truncation"
+    },
+    {
+      "cell": [
+        "num-36",
+        "decimal"
+      ],
+      "orig": "7.20 ",
+      "p_after": {
+        "excel_com_csv": "7.2",
+        "json_sqlite_csv": "7.2",
+        "pandas_csv": "7.2"
+      },
+      "pool": "canary-numeric",
+      "rule": "decimal_trailing_zero_dropped"
+    },
+    {
+      "cell": [
+        "num-37",
+        "num_big"
+      ],
+      "orig": "9007199254740992",
+      "p_after": {
+        "excel_com_csv": "9.0072E+15"
+      },
+      "pool": "canary-numeric",
+      "rule": "int53_overflow"
+    },
+    {
+      "cell": [
+        "num-38",
+        "exponent"
+      ],
+      "orig": "1.5e+22",
+      "p_after": {
+        "excel_com_csv": "1.50E+22"
+      },
+      "pool": "canary-numeric",
+      "rule": "exponent_form_normalized"
+    },
+    {
+      "cell": [
+        "num-39",
+        "num_big"
+      ],
+      "orig": "1234567890123456",
+      "p_after": {
+        "excel_com_csv": "1.23457E+15"
+      },
+      "pool": "canary-numeric",
+      "rule": "excel_15_digit_truncation"
+    },
+    {
+      "cell": [
+        "num-4",
+        "decimal"
+      ],
+      "orig": "45.10 ",
+      "p_after": {
+        "excel_com_csv": "45.1",
+        "json_sqlite_csv": "45.1",
+        "pandas_csv": "45.1"
+      },
+      "pool": "canary-numeric",
+      "rule": "decimal_trailing_zero_dropped"
+    },
+    {
+      "cell": [
+        "num-40",
+        "zip"
+      ],
+      "orig": "-0 ",
+      "p_after": {
+        "excel_com_csv": "0",
+        "json_sqlite_csv": "0",
+        "pandas_csv": "0"
+      },
+      "pool": "canary-numeric",
+      "rule": "negative_zero_sign_lost"
+    },
+    {
+      "cell": [
+        "num-41",
+        "decimal"
+      ],
+      "orig": "45.10 ",
+      "p_after": {
+        "excel_com_csv": "45.1",
+        "json_sqlite_csv": "45.1",
+        "pandas_csv": "45.1"
+      },
+      "pool": "canary-numeric",
+      "rule": "decimal_trailing_zero_dropped"
+    },
+    {
+      "cell": [
+        "num-42",
+        "zip"
+      ],
+      "orig": "-0 ",
+      "p_after": {
+        "excel_com_csv": "0",
+        "json_sqlite_csv": "0",
+        "pandas_csv": "0"
+      },
+      "pool": "canary-numeric",
+      "rule": "negative_zero_sign_lost"
+    },
+    {
+      "cell": [
+        "num-43",
+        "num_big"
+      ],
+      "orig": "4500000000000000",
+      "p_after": {
+        "excel_com_csv": "4.5E+15"
+      },
+      "pool": "canary-numeric",
+      "rule": "scientific_notation_coercion"
+    },
+    {
+      "cell": [
+        "num-44",
+        "num_big"
+      ],
+      "orig": "4500000000000000",
+      "p_after": {
+        "excel_com_csv": "4.5E+15"
+      },
+      "pool": "canary-numeric",
+      "rule": "scientific_notation_coercion"
+    },
+    {
+      "cell": [
+        "num-45",
+        "zip"
+      ],
+      "orig": "-0 ",
+      "p_after": {
+        "excel_com_csv": "0",
+        "json_sqlite_csv": "0",
+        "pandas_csv": "0"
+      },
+      "pool": "canary-numeric",
+      "rule": "negative_zero_sign_lost"
+    },
+    {
+      "cell": [
+        "num-46",
+        "decimal"
+      ],
+      "orig": "45.10 ",
+      "p_after": {
+        "excel_com_csv": "45.1",
+        "json_sqlite_csv": "45.1",
+        "pandas_csv": "45.1"
+      },
+      "pool": "canary-numeric",
+      "rule": "decimal_trailing_zero_dropped"
+    },
+    {
+      "cell": [
+        "num-47",
+        "exponent"
+      ],
+      "orig": "1.25e+30",
+      "p_after": {
+        "excel_com_csv": "1.25E+30"
+      },
+      "pool": "canary-numeric",
+      "rule": "exponent_form_normalized"
+    },
+    {
+      "cell": [
+        "num-48",
+        "exponent"
+      ],
+      "orig": "7.5e+21",
+      "p_after": {
+        "excel_com_csv": "7.50E+21"
+      },
+      "pool": "canary-numeric",
+      "rule": "exponent_form_normalized"
+    },
+    {
+      "cell": [
+        "num-49",
+        "num_big"
+      ],
+      "orig": "1500000000000000000",
+      "p_after": {
+        "excel_com_csv": "1.5E+18",
+        "openpyxl_csv": "1.5e+18"
+      },
+      "pool": "canary-numeric",
+      "rule": "scientific_notation_coercion"
+    },
+    {
+      "cell": [
+        "num-5",
+        "num_big"
+      ],
+      "orig": "1234567890123456",
+      "p_after": {
+        "excel_com_csv": "1.23457E+15"
+      },
+      "pool": "canary-numeric",
+      "rule": "excel_15_digit_truncation"
+    },
+    {
+      "cell": [
+        "num-50",
+        "decimal"
+      ],
+      "orig": "120.70 ",
+      "p_after": {
+        "excel_com_csv": "120.7",
+        "json_sqlite_csv": "120.7",
+        "pandas_csv": "120.7"
+      },
+      "pool": "canary-numeric",
+      "rule": "decimal_trailing_zero_dropped"
+    },
+    {
+      "cell": [
+        "num-51",
+        "zip"
+      ],
+      "orig": "-0 ",
+      "p_after": {
+        "excel_com_csv": "0",
+        "json_sqlite_csv": "0",
+        "pandas_csv": "0"
+      },
+      "pool": "canary-numeric",
+      "rule": "negative_zero_sign_lost"
+    },
+    {
+      "cell": [
+        "num-52",
+        "num_big"
+      ],
+      "orig": "9007199254740996",
+      "p_after": {
+        "excel_com_csv": "9.0072E+15"
+      },
+      "pool": "canary-numeric",
+      "rule": "int53_overflow"
+    },
+    {
+      "cell": [
+        "num-53",
+        "decimal"
+      ],
+      "orig": "19.90 ",
+      "p_after": {
+        "excel_com_csv": "19.9",
+        "json_sqlite_csv": "19.9",
+        "pandas_csv": "19.9"
+      },
+      "pool": "canary-numeric",
+      "rule": "decimal_trailing_zero_dropped"
+    },
+    {
+      "cell": [
+        "num-54",
+        "decimal"
+      ],
+      "orig": "3.50 ",
+      "p_after": {
+        "excel_com_csv": "3.5",
+        "json_sqlite_csv": "3.5",
+        "pandas_csv": "3.5"
+      },
+      "pool": "canary-numeric",
+      "rule": "decimal_trailing_zero_dropped"
+    },
+    {
+      "cell": [
+        "num-55",
+        "decimal"
+      ],
+      "orig": "7.20 ",
+      "p_after": {
+        "excel_com_csv": "7.2",
+        "json_sqlite_csv": "7.2",
+        "pandas_csv": "7.2"
+      },
+      "pool": "canary-numeric",
+      "rule": "decimal_trailing_zero_dropped"
+    },
+    {
+      "cell": [
+        "num-56",
+        "num_big"
+      ],
+      "orig": "2500000000000000000",
+      "p_after": {
+        "excel_com_csv": "2.5E+18",
+        "openpyxl_csv": "2.5e+18"
+      },
+      "pool": "canary-numeric",
+      "rule": "scientific_notation_coercion"
+    },
+    {
+      "cell": [
+        "num-57",
+        "num_big"
+      ],
+      "orig": "2500000000000000000",
+      "p_after": {
+        "excel_com_csv": "2.5E+18",
+        "openpyxl_csv": "2.5e+18"
+      },
+      "pool": "canary-numeric",
+      "rule": "scientific_notation_coercion"
+    },
+    {
+      "cell": [
+        "num-58",
+        "decimal"
+      ],
+      "orig": "19.90 ",
+      "p_after": {
+        "excel_com_csv": "19.9",
+        "json_sqlite_csv": "19.9",
+        "pandas_csv": "19.9"
+      },
+      "pool": "canary-numeric",
+      "rule": "decimal_trailing_zero_dropped"
+    },
+    {
+      "cell": [
+        "num-59",
+        "decimal"
+      ],
+      "orig": "0.50 ",
+      "p_after": {
+        "excel_com_csv": "0.5",
+        "json_sqlite_csv": "0.5",
+        "pandas_csv": "0.5"
+      },
+      "pool": "canary-numeric",
+      "rule": "decimal_trailing_zero_dropped"
+    },
+    {
+      "cell": [
+        "num-6",
+        "exponent"
+      ],
+      "orig": "7.5e+21",
+      "p_after": {
+        "excel_com_csv": "7.50E+21"
+      },
+      "pool": "canary-numeric",
+      "rule": "exponent_form_normalized"
+    },
+    {
+      "cell": [
+        "num-60",
+        "num_big"
+      ],
+      "orig": "9007199254740994",
+      "p_after": {
+        "excel_com_csv": "9.0072E+15"
+      },
+      "pool": "canary-numeric",
+      "rule": "int53_overflow"
+    },
+    {
+      "cell": [
+        "num-7",
+        "num_big"
+      ],
+      "orig": "2500000000000000000",
+      "p_after": {
+        "excel_com_csv": "2.5E+18",
+        "openpyxl_csv": "2.5e+18"
+      },
+      "pool": "canary-numeric",
+      "rule": "scientific_notation_coercion"
+    },
+    {
+      "cell": [
+        "num-8",
+        "decimal"
+      ],
+      "orig": "45.10 ",
+      "p_after": {
+        "excel_com_csv": "45.1",
+        "json_sqlite_csv": "45.1",
+        "pandas_csv": "45.1"
+      },
+      "pool": "canary-numeric",
+      "rule": "decimal_trailing_zero_dropped"
+    },
+    {
+      "cell": [
+        "num-9",
+        "num_big"
+      ],
+      "orig": "9007199254740994",
+      "p_after": {
+        "excel_com_csv": "9.0072E+15"
+      },
+      "pool": "canary-numeric",
+      "rule": "int53_overflow"
+    },
+    {
+      "cell": [
+        "sem-1",
+        "date"
+      ],
+      "orig": "1900-02-29",
+      "p_after": {
+        "excel_com_csv": "1900/2/29"
+      },
+      "pool": "canary-semantic",
+      "rule": "serial_60_phantom_date"
+    },
+    {
+      "cell": [
+        "sem-10",
+        "zip"
+      ],
+      "orig": "00123",
+      "p_after": {
+        "excel_com_csv": "123",
+        "json_sqlite_csv": "123",
+        "pandas_csv": "123"
+      },
+      "pool": "canary-semantic",
+      "rule": "leading_zero_lost"
+    },
+    {
+      "cell": [
+        "sem-11",
+        "zip"
+      ],
+      "orig": "02114",
+      "p_after": {
+        "excel_com_csv": "2114",
+        "json_sqlite_csv": "2114",
+        "pandas_csv": "2114"
+      },
+      "pool": "canary-semantic",
+      "rule": "leading_zero_lost"
+    },
+    {
+      "cell": [
+        "sem-12",
+        "zip"
+      ],
+      "orig": "08080",
+      "p_after": {
+        "excel_com_csv": "8080",
+        "json_sqlite_csv": "8080",
+        "pandas_csv": "8080"
+      },
+      "pool": "canary-semantic",
+      "rule": "leading_zero_lost"
+    },
+    {
+      "cell": [
+        "sem-13",
+        "zip"
+      ],
+      "orig": "02114",
+      "p_after": {
+        "excel_com_csv": "2114",
+        "json_sqlite_csv": "2114",
+        "pandas_csv": "2114"
+      },
+      "pool": "canary-semantic",
+      "rule": "leading_zero_lost"
+    },
+    {
+      "cell": [
+        "sem-14",
+        "date"
+      ],
+      "orig": "1900-02-29",
+      "p_after": {
+        "excel_com_csv": "1900/2/29"
+      },
+      "pool": "canary-semantic",
+      "rule": "serial_60_phantom_date"
+    },
+    {
+      "cell": [
+        "sem-15",
+        "date"
+      ],
+      "orig": "1900-02-29",
+      "p_after": {
+        "excel_com_csv": "1900/2/29"
+      },
+      "pool": "canary-semantic",
+      "rule": "serial_60_phantom_date"
+    },
+    {
+      "cell": [
+        "sem-16",
+        "date"
+      ],
+      "orig": "2000-01-01",
+      "p_after": {
+        "excel_com_csv": "2000/1/1"
+      },
+      "pool": "canary-semantic",
+      "rule": "date_retyped_to_text"
+    },
+    {
+      "cell": [
+        "sem-17",
+        "nullable"
+      ],
+      "orig": "NULL",
+      "p_after": {
+        "pandas_csv": ""
+      },
+      "pool": "canary-semantic",
+      "rule": "empty_vs_null_vs_missing"
+    },
+    {
+      "cell": [
+        "sem-18",
+        "zip"
+      ],
+      "orig": "00777",
+      "p_after": {
+        "excel_com_csv": "777",
+        "json_sqlite_csv": "777",
+        "pandas_csv": "777"
+      },
+      "pool": "canary-semantic",
+      "rule": "leading_zero_lost"
+    },
+    {
+      "cell": [
+        "sem-19",
+        "zip"
+      ],
+      "orig": "00777",
+      "p_after": {
+        "excel_com_csv": "777",
+        "json_sqlite_csv": "777",
+        "pandas_csv": "777"
+      },
+      "pool": "canary-semantic",
+      "rule": "leading_zero_lost"
+    },
+    {
+      "cell": [
+        "sem-2",
+        "zip"
+      ],
+      "orig": "00123",
+      "p_after": {
+        "excel_com_csv": "123",
+        "json_sqlite_csv": "123",
+        "pandas_csv": "123"
+      },
+      "pool": "canary-semantic",
+      "rule": "leading_zero_lost"
+    },
+    {
+      "cell": [
+        "sem-20",
+        "nullable"
+      ],
+      "orig": "NaN",
+      "p_after": {
+        "pandas_csv": ""
+      },
+      "pool": "canary-semantic",
+      "rule": "empty_vs_null_vs_missing"
+    },
+    {
+      "cell": [
+        "sem-21",
+        "date"
+      ],
+      "orig": "1900-02-29",
+      "p_after": {
+        "excel_com_csv": "1900/2/29"
+      },
+      "pool": "canary-semantic",
+      "rule": "serial_60_phantom_date"
+    },
+    {
+      "cell": [
+        "sem-22",
+        "nullable"
+      ],
+      "orig": "NaN",
+      "p_after": {
+        "pandas_csv": ""
+      },
+      "pool": "canary-semantic",
+      "rule": "empty_vs_null_vs_missing"
+    },
+    {
+      "cell": [
+        "sem-23",
+        "zip"
+      ],
+      "orig": "02114",
+      "p_after": {
+        "excel_com_csv": "2114",
+        "json_sqlite_csv": "2114",
+        "pandas_csv": "2114"
+      },
+      "pool": "canary-semantic",
+      "rule": "leading_zero_lost"
+    },
+    {
+      "cell": [
+        "sem-24",
+        "date"
+      ],
+      "orig": "1987-07-04",
+      "p_after": {
+        "excel_com_csv": "1987/7/4"
+      },
+      "pool": "canary-semantic",
+      "rule": "date_retyped_to_text"
+    },
+    {
+      "cell": [
+        "sem-25",
+        "date"
+      ],
+      "orig": "1999-12-31",
+      "p_after": {
+        "excel_com_csv": "1999/12/31"
+      },
+      "pool": "canary-semantic",
+      "rule": "date_retyped_to_text"
+    },
+    {
+      "cell": [
+        "sem-26",
+        "nullable"
+      ],
+      "orig": "NA",
+      "p_after": {
+        "pandas_csv": ""
+      },
+      "pool": "canary-semantic",
+      "rule": "empty_vs_null_vs_missing"
+    },
+    {
+      "cell": [
+        "sem-27",
+        "date"
+      ],
+      "orig": "1987-07-04",
+      "p_after": {
+        "excel_com_csv": "1987/7/4"
+      },
+      "pool": "canary-semantic",
+      "rule": "date_retyped_to_text"
+    },
+    {
+      "cell": [
+        "sem-28",
+        "nullable"
+      ],
+      "orig": "n/a",
+      "p_after": {
+        "pandas_csv": ""
+      },
+      "pool": "canary-semantic",
+      "rule": "empty_vs_null_vs_missing"
+    },
+    {
+      "cell": [
+        "sem-3",
+        "date"
+      ],
+      "orig": "1999-12-31",
+      "p_after": {
+        "excel_com_csv": "1999/12/31"
+      },
+      "pool": "canary-semantic",
+      "rule": "date_retyped_to_text"
+    },
+    {
+      "cell": [
+        "sem-30",
+        "date"
+      ],
+      "orig": "1900-02-29",
+      "p_after": {
+        "excel_com_csv": "1900/2/29"
+      },
+      "pool": "canary-semantic",
+      "rule": "serial_60_phantom_date"
+    },
+    {
+      "cell": [
+        "sem-31",
+        "nullable"
+      ],
+      "orig": "NULL",
+      "p_after": {
+        "pandas_csv": ""
+      },
+      "pool": "canary-semantic",
+      "rule": "empty_vs_null_vs_missing"
+    },
+    {
+      "cell": [
+        "sem-32",
+        "nullable"
+      ],
+      "orig": "NA",
+      "p_after": {
+        "pandas_csv": ""
+      },
+      "pool": "canary-semantic",
+      "rule": "empty_vs_null_vs_missing"
+    },
+    {
+      "cell": [
+        "sem-33",
+        "nullable"
+      ],
+      "orig": "n/a",
+      "p_after": {
+        "pandas_csv": ""
+      },
+      "pool": "canary-semantic",
+      "rule": "empty_vs_null_vs_missing"
+    },
+    {
+      "cell": [
+        "sem-34",
+        "zip"
+      ],
+      "orig": "01111",
+      "p_after": {
+        "excel_com_csv": "1111",
+        "json_sqlite_csv": "1111",
+        "pandas_csv": "1111"
+      },
+      "pool": "canary-semantic",
+      "rule": "leading_zero_lost"
+    },
+    {
+      "cell": [
+        "sem-35",
+        "date"
+      ],
+      "orig": "1987-07-04",
+      "p_after": {
+        "excel_com_csv": "1987/7/4"
+      },
+      "pool": "canary-semantic",
+      "rule": "date_retyped_to_text"
+    },
+    {
+      "cell": [
+        "sem-36",
+        "nullable"
+      ],
+      "orig": "NA",
+      "p_after": {
+        "pandas_csv": ""
+      },
+      "pool": "canary-semantic",
+      "rule": "empty_vs_null_vs_missing"
+    },
+    {
+      "cell": [
+        "sem-37",
+        "zip"
+      ],
+      "orig": "01111",
+      "p_after": {
+        "excel_com_csv": "1111",
+        "json_sqlite_csv": "1111",
+        "pandas_csv": "1111"
+      },
+      "pool": "canary-semantic",
+      "rule": "leading_zero_lost"
+    },
+    {
+      "cell": [
+        "sem-38",
+        "date"
+      ],
+      "orig": "2000-01-01",
+      "p_after": {
+        "excel_com_csv": "2000/1/1"
+      },
+      "pool": "canary-semantic",
+      "rule": "date_retyped_to_text"
+    },
+    {
+      "cell": [
+        "sem-39",
+        "date"
+      ],
+      "orig": "1900-02-29",
+      "p_after": {
+        "excel_com_csv": "1900/2/29"
+      },
+      "pool": "canary-semantic",
+      "rule": "serial_60_phantom_date"
+    },
+    {
+      "cell": [
+        "sem-4",
+        "zip"
+      ],
+      "orig": "08080",
+      "p_after": {
+        "excel_com_csv": "8080",
+        "json_sqlite_csv": "8080",
+        "pandas_csv": "8080"
+      },
+      "pool": "canary-semantic",
+      "rule": "leading_zero_lost"
+    },
+    {
+      "cell": [
+        "sem-40",
+        "nullable"
+      ],
+      "orig": "NA",
+      "p_after": {
+        "pandas_csv": ""
+      },
+      "pool": "canary-semantic",
+      "rule": "empty_vs_null_vs_missing"
+    },
+    {
+      "cell": [
+        "sem-41",
+        "date"
+      ],
+      "orig": "1987-07-04",
+      "p_after": {
+        "excel_com_csv": "1987/7/4"
+      },
+      "pool": "canary-semantic",
+      "rule": "date_retyped_to_text"
+    },
+    {
+      "cell": [
+        "sem-42",
+        "date"
+      ],
+      "orig": "1900-02-29",
+      "p_after": {
+        "excel_com_csv": "1900/2/29"
+      },
+      "pool": "canary-semantic",
+      "rule": "serial_60_phantom_date"
+    },
+    {
+      "cell": [
+        "sem-43",
+        "date"
+      ],
+      "orig": "1900-02-29",
+      "p_after": {
+        "excel_com_csv": "1900/2/29"
+      },
+      "pool": "canary-semantic",
+      "rule": "serial_60_phantom_date"
+    },
+    {
+      "cell": [
+        "sem-44",
+        "nullable"
+      ],
+      "orig": "NA",
+      "p_after": {
+        "pandas_csv": ""
+      },
+      "pool": "canary-semantic",
+      "rule": "empty_vs_null_vs_missing"
+    },
+    {
+      "cell": [
+        "sem-45",
+        "zip"
+      ],
+      "orig": "02114",
+      "p_after": {
+        "excel_com_csv": "2114",
+        "json_sqlite_csv": "2114",
+        "pandas_csv": "2114"
+      },
+      "pool": "canary-semantic",
+      "rule": "leading_zero_lost"
+    },
+    {
+      "cell": [
+        "sem-46",
+        "date"
+      ],
+      "orig": "1900-02-29",
+      "p_after": {
+        "excel_com_csv": "1900/2/29"
+      },
+      "pool": "canary-semantic",
+      "rule": "serial_60_phantom_date"
+    },
+    {
+      "cell": [
+        "sem-47",
+        "nullable"
+      ],
+      "orig": "NaN",
+      "p_after": {
+        "pandas_csv": ""
+      },
+      "pool": "canary-semantic",
+      "rule": "empty_vs_null_vs_missing"
+    },
+    {
+      "cell": [
+        "sem-49",
+        "date"
+      ],
+      "orig": "1900-02-29",
+      "p_after": {
+        "excel_com_csv": "1900/2/29"
+      },
+      "pool": "canary-semantic",
+      "rule": "serial_60_phantom_date"
+    },
+    {
+      "cell": [
+        "sem-5",
+        "date"
+      ],
+      "orig": "1900-02-29",
+      "p_after": {
+        "excel_com_csv": "1900/2/29"
+      },
+      "pool": "canary-semantic",
+      "rule": "serial_60_phantom_date"
+    },
+    {
+      "cell": [
+        "sem-50",
+        "date"
+      ],
+      "orig": "1999-12-31",
+      "p_after": {
+        "excel_com_csv": "1999/12/31"
+      },
+      "pool": "canary-semantic",
+      "rule": "date_retyped_to_text"
+    },
+    {
+      "cell": [
+        "sem-51",
+        "nullable"
+      ],
+      "orig": "NULL",
+      "p_after": {
+        "pandas_csv": ""
+      },
+      "pool": "canary-semantic",
+      "rule": "empty_vs_null_vs_missing"
+    },
+    {
+      "cell": [
+        "sem-52",
+        "nullable"
+      ],
+      "orig": "n/a",
+      "p_after": {
+        "pandas_csv": ""
+      },
+      "pool": "canary-semantic",
+      "rule": "empty_vs_null_vs_missing"
+    },
+    {
+      "cell": [
+        "sem-53",
+        "nullable"
+      ],
+      "orig": "n/a",
+      "p_after": {
+        "pandas_csv": ""
+      },
+      "pool": "canary-semantic",
+      "rule": "empty_vs_null_vs_missing"
+    },
+    {
+      "cell": [
+        "sem-54",
+        "date"
+      ],
+      "orig": "1900-02-29",
+      "p_after": {
+        "excel_com_csv": "1900/2/29"
+      },
+      "pool": "canary-semantic",
+      "rule": "serial_60_phantom_date"
+    },
+    {
+      "cell": [
+        "sem-55",
+        "date"
+      ],
+      "orig": "1999-12-31",
+      "p_after": {
+        "excel_com_csv": "1999/12/31"
+      },
+      "pool": "canary-semantic",
+      "rule": "date_retyped_to_text"
+    },
+    {
+      "cell": [
+        "sem-56",
+        "nullable"
+      ],
+      "orig": "NaN",
+      "p_after": {
+        "pandas_csv": ""
+      },
+      "pool": "canary-semantic",
+      "rule": "empty_vs_null_vs_missing"
+    },
+    {
+      "cell": [
+        "sem-57",
+        "zip"
+      ],
+      "orig": "00123",
+      "p_after": {
+        "excel_com_csv": "123",
+        "json_sqlite_csv": "123",
+        "pandas_csv": "123"
+      },
+      "pool": "canary-semantic",
+      "rule": "leading_zero_lost"
+    },
+    {
+      "cell": [
+        "sem-58",
+        "zip"
+      ],
+      "orig": "01111",
+      "p_after": {
+        "excel_com_csv": "1111",
+        "json_sqlite_csv": "1111",
+        "pandas_csv": "1111"
+      },
+      "pool": "canary-semantic",
+      "rule": "leading_zero_lost"
+    },
+    {
+      "cell": [
+        "sem-59",
+        "zip"
+      ],
+      "orig": "08080",
+      "p_after": {
+        "excel_com_csv": "8080",
+        "json_sqlite_csv": "8080",
+        "pandas_csv": "8080"
+      },
+      "pool": "canary-semantic",
+      "rule": "leading_zero_lost"
+    },
+    {
+      "cell": [
+        "sem-6",
+        "date"
+      ],
+      "orig": "1987-07-04",
+      "p_after": {
+        "excel_com_csv": "1987/7/4"
+      },
+      "pool": "canary-semantic",
+      "rule": "date_retyped_to_text"
+    },
+    {
+      "cell": [
+        "sem-60",
+        "date"
+      ],
+      "orig": "2024-01-02",
+      "p_after": {
+        "excel_com_csv": "2024/1/2"
+      },
+      "pool": "canary-semantic",
+      "rule": "date_retyped_to_text"
+    },
+    {
+      "cell": [
+        "sem-62",
+        "zip"
+      ],
+      "orig": "01111",
+      "p_after": {
+        "excel_com_csv": "1111",
+        "json_sqlite_csv": "1111",
+        "pandas_csv": "1111"
+      },
+      "pool": "canary-semantic",
+      "rule": "leading_zero_lost"
+    },
+    {
+      "cell": [
+        "sem-63",
+        "nullable"
+      ],
+      "orig": "NULL",
+      "p_after": {
+        "pandas_csv": ""
+      },
+      "pool": "canary-semantic",
+      "rule": "empty_vs_null_vs_missing"
+    },
+    {
+      "cell": [
+        "sem-66",
+        "date"
+      ],
+      "orig": "1987-07-04",
+      "p_after": {
+        "excel_com_csv": "1987/7/4"
+      },
+      "pool": "canary-semantic",
+      "rule": "date_retyped_to_text"
+    },
+    {
+      "cell": [
+        "sem-67",
+        "date"
+      ],
+      "orig": "2024-01-02",
+      "p_after": {
+        "excel_com_csv": "2024/1/2"
+      },
+      "pool": "canary-semantic",
+      "rule": "date_retyped_to_text"
+    },
+    {
+      "cell": [
+        "sem-68",
+        "date"
+      ],
+      "orig": "1987-07-04",
+      "p_after": {
+        "excel_com_csv": "1987/7/4"
+      },
+      "pool": "canary-semantic",
+      "rule": "date_retyped_to_text"
+    },
+    {
+      "cell": [
+        "sem-7",
+        "date"
+      ],
+      "orig": "1987-07-04",
+      "p_after": {
+        "excel_com_csv": "1987/7/4"
+      },
+      "pool": "canary-semantic",
+      "rule": "date_retyped_to_text"
+    },
+    {
+      "cell": [
+        "sem-71",
+        "nullable"
+      ],
+      "orig": "n/a",
+      "p_after": {
+        "pandas_csv": ""
+      },
+      "pool": "canary-semantic",
+      "rule": "empty_vs_null_vs_missing"
+    },
+    {
+      "cell": [
+        "sem-72",
+        "date"
+      ],
+      "orig": "1900-02-29",
+      "p_after": {
+        "excel_com_csv": "1900/2/29"
+      },
+      "pool": "canary-semantic",
+      "rule": "serial_60_phantom_date"
+    },
+    {
+      "cell": [
+        "sem-73",
+        "date"
+      ],
+      "orig": "1900-02-29",
+      "p_after": {
+        "excel_com_csv": "1900/2/29"
+      },
+      "pool": "canary-semantic",
+      "rule": "serial_60_phantom_date"
+    },
+    {
+      "cell": [
+        "sem-74",
+        "zip"
+      ],
+      "orig": "02114",
+      "p_after": {
+        "excel_com_csv": "2114",
+        "json_sqlite_csv": "2114",
+        "pandas_csv": "2114"
+      },
+      "pool": "canary-semantic",
+      "rule": "leading_zero_lost"
+    },
+    {
+      "cell": [
+        "sem-75",
+        "nullable"
+      ],
+      "orig": "n/a",
+      "p_after": {
+        "pandas_csv": ""
+      },
+      "pool": "canary-semantic",
+      "rule": "empty_vs_null_vs_missing"
+    },
+    {
+      "cell": [
+        "sem-77",
+        "zip"
+      ],
+      "orig": "02114",
+      "p_after": {
+        "excel_com_csv": "2114",
+        "json_sqlite_csv": "2114",
+        "pandas_csv": "2114"
+      },
+      "pool": "canary-semantic",
+      "rule": "leading_zero_lost"
+    },
+    {
+      "cell": [
+        "sem-78",
+        "date"
+      ],
+      "orig": "1900-02-29",
+      "p_after": {
+        "excel_com_csv": "1900/2/29"
+      },
+      "pool": "canary-semantic",
+      "rule": "serial_60_phantom_date"
+    },
+    {
+      "cell": [
+        "sem-79",
+        "nullable"
+      ],
+      "orig": "NULL",
+      "p_after": {
+        "pandas_csv": ""
+      },
+      "pool": "canary-semantic",
+      "rule": "empty_vs_null_vs_missing"
+    },
+    {
+      "cell": [
+        "sem-8",
+        "date"
+      ],
+      "orig": "1900-02-29",
+      "p_after": {
+        "excel_com_csv": "1900/2/29"
+      },
+      "pool": "canary-semantic",
+      "rule": "serial_60_phantom_date"
+    },
+    {
+      "cell": [
+        "sem-80",
+        "zip"
+      ],
+      "orig": "08080",
+      "p_after": {
+        "excel_com_csv": "8080",
+        "json_sqlite_csv": "8080",
+        "pandas_csv": "8080"
+      },
+      "pool": "canary-semantic",
+      "rule": "leading_zero_lost"
+    },
+    {
+      "cell": [
+        "sem-9",
+        "zip"
+      ],
+      "orig": "00123",
+      "p_after": {
+        "excel_com_csv": "123",
+        "json_sqlite_csv": "123",
+        "pandas_csv": "123"
+      },
+      "pool": "canary-semantic",
+      "rule": "leading_zero_lost"
+    }
+  ],
+  "columns": [
+    "id",
+    "num_big",
+    "zip",
+    "decimal",
+    "exponent",
+    "date",
+    "text_unicode",
+    "nullable"
+  ],
+  "generator_version": "0.1.0.dev0",
+  "id_prefixes": {
+    "canary-numeric": "num-",
+    "canary-semantic": "sem-",
+    "control-lossless": "ctl-"
+  },
+  "key": "id",
+  "pools": {
+    "canary-numeric": 60,
+    "canary-semantic": 80,
+    "control-lossless": 60
+  },
+  "rows": 200,
+  "seed": 42,
+  "truth_schema_version": 1,
+  "uncovered_rules": [
+    "float_precision_truncated",
+    "null_token_collision",
+    "unicode_normalization_changed",
+    "whitespace_collapsed",
+    "bom_prepended",
+    "encoding_mojibake",
+    "date_system_shift_1904",
+    "number_format_dropped"
+  ]
+}
