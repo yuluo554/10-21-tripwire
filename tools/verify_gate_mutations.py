@@ -168,7 +168,31 @@ def v3_stale_gap():
         raise NothingToMutate("plan/06 找不到缺口表（判据表搬走了？）")
     target_idx = header_idx + 2
     if target_idx >= len(lines) or not lines[target_idx].startswith("|"):
-        raise NothingToMutate("缺口表没有任何数据行")
+        # 缺口表已清空（全部缺口关闭）——**注入**一行而不是跳过。
+        # 变异要证明的是"缺口列出现已 ✅ 里程碑号 → 门必须红"；表格空着时这条判据仍是活的，
+        # 靠"没有数据行可改"跳过就等于把它放进盲区（M6 收尾时实测踩到）。
+        lines.insert(header_idx + 2, "| G-99 注入的缺口 | 变异注入：说明里含 M%d | M%d |" % (milestone, milestone))
+        mutated = "\n".join(lines)
+        assert mutated != original.decode("utf-8"), "注入后文本未变化（变异是 no-op）"
+        try:
+            _write_raw(rel, mutated)
+            assert _bytes(rel) != original, "写回后字节未变化（变异是 no-op）"
+            code, output = _gate()
+            if code == 0:
+                results.append(("V3 缺口说明写回已 ✅ 里程碑", "FAIL(未变红)", "注入缺口行后门仍绿"))
+                return
+            line = next((l for l in output.split("\n") if l.startswith("FAIL") and "LAYOUT.GAPS" in l), "")
+            results.append(
+                (
+                    "V3 缺口说明写回已 ✅ 里程碑",
+                    "PASS" if line else "FAIL(红错判据)",
+                    line.strip() or "未出现 LAYOUT.GAPS 的 FAIL",
+                )
+            )
+        finally:
+            _write_raw(rel, original.decode("utf-8"))
+            assert _bytes(rel) == original, "还原后字节不一致"
+        return
 
     cells = lines[target_idx].split("|")
     if len(cells) < 4:

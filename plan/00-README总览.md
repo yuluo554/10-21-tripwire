@@ -99,7 +99,7 @@
 | 退出码 0/1/2/3 | 设计 | CLI 契约 | `tests/test_exit_codes.py` 四条各一条（`main` 与真实进程各一遍） | ✅ M5 |
 | stable fingerprint 跨 run diff | 设计 | 报告 JSON | `tests/test_report.py::test_fingerprint_stable_across_runs`（同输入两份独立 run 的 fingerprint 集合相等） | ✅ M5 |
 | 纯本地零网络 | 红线 | 无网络客户端依赖 | `tools/check_desensitized.py` 0 命中 + `tests/test_report.py::test_no_network_imports`（AST 扫描） | ✅ M5 |
-| 发布：tag + Release 附产物 + 发布留档三件套 | 发布纪律 | 公开仓库 | `tools/check_desensitized.py` 0 命中；`plan/RELEASE-M6.md` §覆盖对账无空项 | ⬜ M6 |
+| 发布：tag + Release 附产物 + 发布留档三件套 | 发布纪律 | 公开仓库 | `tools/check_desensitized.py` 0 命中；`plan/RELEASE-M6.md` §覆盖对账无空项 | ✅ M6 |
 | 方法论装订（AGENTS + 布局门 + plan/00 顶部行） | `ai-tool-project-sprint` 硬约束③ | 纯本地脚本 | `python tools/check_sprint_layout.py` 全绿；`python tools/verify_gate_mutations.py` 17 组按预期（14 红 / 3 SKIP / 0 未按预期） | ✅ M0 |
 | 脱敏门（本机路径 / 用户名 / 回环代理） | 发布纪律 | 纯本地脚本 | `python tools/check_desensitized.py` 0 命中且 4 组注入变异全红 | ✅ M0 |
 | 可运行骨架（CLI + 写盘单点 + 声明校验） | 设计 D11–D14 | 纯本地 | `tripwire --version` / `validate-pipeline` / `rules --count`；未实现子命令 exit 3 | ✅ M0 |
@@ -161,7 +161,7 @@
 | **M3 · 归因规则** | 18 条四族规则 + 快照序列筛选 + `unclassified` 一等公民 + `--fail-on` | 原型 9/9 命中、unclassified=0；构造"同规则不同环节"用例 `resolved_stage` 不同；`--explain` 日志格式符合 `data/README` 口径 | ✅ |
 | **M4 · 夹具与门禁** | `gen-fixture` 三组样本池 + `expected.json` + 门禁三数 | 同 seed 逐字节一致（两层）；`control-lossless` 组零误报；三数任一不满足 exit 2；三数打印在报告首屏 | ✅ |
 | **M5 · 报告与 CI 出口** | MD/JSON/SARIF 同源 + 首屏三段 + 退出码 0/1/2/3 + stable fingerprint + 零网络 AST 守门 | 三格式差异集合一致（按 fingerprint）；四条退出码各一条测试（`main` 与真实进程一致）；同输入两次 run 的 fingerprint 集合相等且报告逐字节一致；`tripwire report --help` / `--help` 可运行 | ✅ |
-| **M6 · 脱敏与发布** | 公开仓库发布 | **`git tag` + GitHub Release（附产物：sdist + wheel + `SHA256SUMS`）+ 发布留档 `plan/RELEASE-M6.md`（在 tag 之前落盘进 tag 树，两栏 + 阶段 7 覆盖对账）**；`python tools/check_desensitized.py` 0 命中 | ⬜ |
+| **M6 · 脱敏与发布** | 公开仓库发布 | **`git tag` + GitHub Release（附产物：sdist + wheel + `SHA256SUMS`）+ 发布留档 `plan/RELEASE-M6.md`（在 tag 之前落盘进 tag 树，两栏 + 阶段 7 覆盖对账）**；`python tools/check_desensitized.py` 0 命中 | ✅ |
 
 > **DoD 产物口径**：选 **A) Release 附产物**（sdist + wheel + `SHA256SUMS`，由 CI 生成并上传）。该口径自首提交起不得降级。
 > **tag 时点口径**：`plan/RELEASE-M6.md` 必须在 tag 之前写好并进 tag 树；tag 后才产生的事实（CI run id / 附件 sha256 / 真下载复核）作为追加提交，在留档里分"tag 时点事实 / tag 后追加事实"两栏写。

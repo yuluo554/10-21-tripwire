@@ -80,7 +80,7 @@
 | LibreOffice / Sheets / WPS | ⬜ 未实测（二期） |
 | YAML / TOML / MessagePack | ⬜ 二期 |
 | 真实大规模数据 | ⬜ 未测（首期只承诺 200 行合成样本） |
-| CI 实跑 | **待首推**（§二 回填） |
+| CI 实跑 | ✅ 已跑（首推即绿；见 §2.3） |
 
 ---
 
@@ -92,58 +92,91 @@
 
 | 项 | 值 |
 |---|---|
-| tag | `v0.1.0`（annotated） |
-| tag 指向 | **含本记录完整内容的那个提交**（自指表述，不用绝对值：`git rev-list -n1 v0.1.0` 与 `git rev-parse HEAD` 相等即可核对） |
-| Release | `v0.1.0`，附件 = sdist + wheel + `SHA256SUMS` |
-| Release 正文 | 登记 digest（一行一个） |
+| tag | `v0.1.0`（**annotated**；远端 `git/refs/tags/v0.1.0` 的 `object.type = "tag"`） |
+| tag 对象 OID | `c7ca8277ffea4dc6c52ff11ff9776df6d9f3c28f` |
+| tag 指向的 commit | `ff7e4e800ca2288e2bb0416865cc4b96b767189f`（"M6 发布留档（tag 前落盘）…"） |
+| 远端主分支 tip | 同上（tag 与 `main` 在打 tag 时同一提交） |
+| Release | `v0.1.0`，`isDraft=false`、`isPrerelease=false`；`target_commitish=main`（**绑分支形态**——移动 tag 不会打回 draft） |
+| 附件 | `tripwire-0.1.0.tar.gz`（238736 B）/ `tripwire-0.1.0-py3-none-any.whl`（98142 B）/ `SHA256SUMS`（186 B） |
+| 仓库 | `https://github.com/yuluo554/10-21-tripwire`（公开） |
 
-### 2.2 CI 首跑（G-6）
+### 2.2 附件 digest（CI 生成，本机不产）
 
-| 项 | 值 |
-|---|---|
-| 首推 run | 待回填（`gh run list --limit 5`） |
-| 四矩阵 | ubuntu/windows × 3.10/3.12 —— 待回填 |
-| `release-artifacts` job | tag 触发 —— 待回填 |
-| skip 数 | 待回填（windows 上 `excel_com_csv` 若 Excel 缺席亦 skip） |
+```
+531de2469dc1d81430c5dfee204c9a628a07b746908c22a85a50d51af7d4df9a  tripwire-0.1.0.tar.gz
+e8a4b7a415ec2f314ec7aaff119e8767b3682306340a06a04b562822ac9403db  tripwire-0.1.0-py3-none-any.whl
+```
 
-### 2.3 发布物复核（G-7）
+> **口径**：`SHA256SUMS` 只由 CI 的 `release-artifacts` job 生成（`plan/06` R7）；本机 build 的产物**从不**上传。
+
+### 2.3 CI 首跑（G-6 关闭）
+
+| run | 事件 | 结论 |
+|---|---|---|
+| 39528824668 | `push main`（首推） | **5 job 全绿**；`release-artifacts` 按设计 skip（分支 push 不产发布物） |
+| 39529248748 | `push v0.1.0`（tag） | **6 job 全绿**，含 `build release artifacts` |
+| 39529702552 | `workflow_dispatch` | 全绿（用于"两次独立 CI 构建"的内容对账） |
+
+- **四矩阵一致**：ubuntu/windows × Python 3.10/3.12 —— 每个矩阵 **192 passed / 19 skipped / 0 failed**（总计 211 项收集）。
+- **19 条 skip 逐条可指认**：全部是 `excel_com_csv` 的声明式跳过（COM 仅 Windows，CI runner 无 Excel），`-rs` 每条带原因。
+- **首推即绿**：预留的"诊断+修复+再推"预算**未动用**（开发期前置工程到位：`eol=lf` / extras 装齐 / 平台无关写法）。
+- **push 数 = run 数**：2 次 push（main + tag）→ 2 次 run；tag push 因 `on: push` 未配 filters 而独立触发一轮（如实记录）。
+
+### 2.4 发布物复核（G-7 关闭）
 
 | 步 | 命令 | 结果 |
 |---|---|---|
-| 真下载 | `gh release download v0.1.0 -D verify/` | 待回填 |
-| 校验和 | `cd verify && sha256sum -c SHA256SUMS` | 待回填 |
-| 附件 vs tag 树 | sdist 解包树 ∩ `git archive v0.1.0` 解包树的**共有文件**逐个 sha256 相等；两侧独有集合逐项点名 | 待回填 |
-| 从 tag 重建 | `git archive v0.1.0 \| tar -x` → `python -m build` → 与下载件 `cmp` | 待回填 |
+| 真下载 | `gh release download v0.1.0 -D verify/` | ✅ 三件（sdist / wheel / `SHA256SUMS`） |
+| 校验和 | `cd verify && sha256sum -c SHA256SUMS` | ✅ 两件均 `OK`（exit 0） |
+| 下载件 → 中立目录安装 | 全新 venv + `pip install tripwire-0.1.0-py3-none-any.whl` | ✅ `--version` = `0.1.0`；`rules --count` = 18；`run --expected` 首屏三段正确、exit 1 |
+| 附件 vs tag 树（**共有文件**逐字节） | sdist 解包树 ∩ `git archive v0.1.0` 解包树 | ✅ **共有 79 个文件，0 个不同** |
+| 两侧独有集合逐项点名 | — | `git archive` 独有 3：`.gitattributes` / `.gitignore` / `.github/workflows/ci.yml`；sdist 独有 8：`PKG-INFO` / `setup.cfg` / `src/tripwire.egg-info/*`（6 个）—— 均为构建/入包元数据，**预期不同构** |
+| 从 tag 重建（内容级） | `git archive v0.1.0 \| tar -x` → `python -m build` → 与下载件比**成员内容** | ✅ sdist 104 个成员**内容全等**；wheel 成员内容全等 |
+| 从 tag 重建（字节级） | `cmp` | ⚠️ **不等**：gzip 头 mtime + tar 成员 mtime 随构建时刻变（sdist）；wheel 在 `SOURCE_DATE_EPOCH` 固定时**可字节复现**（实测两次构建 `cmp` 一致） |
 
-> **`diff -r` 是错判据**：sdist 独有 `PKG-INFO` / `*.egg-info` / `setup.cfg`，`git archive` 独有
-> `.gitignore` / `.gitattributes` / `.github/`——两棵树**结构上不同构**，零差异永不可能。
+> **字节级复现的边界（如实登记，不夸大）**：setuptools 的 **sdist 嵌入文件 mtime**，即使设 `SOURCE_DATE_EPOCH`
+> 仍两次构建不同；**wheel 在 `SOURCE_DATE_EPOCH` 固定下字节可复现**（本机实测）。两次独立 CI 构建的
+> sdist 成员**内容** 104/104 全等、仅 mtime 不同。所以本项目承诺的是
+> **"内容级同源 + 校验和可复核"**，**不承诺 sdist 字节级可复现**——后者需要 setuptools 侧支持，不在本版范围。
+
+### 2.5 tag 后追加的文档提交（tag 树外）
+
+| 提交主题 | 内容 | 是否触碰交付面 |
+|---|---|---|
+| M6 收尾 | 4 处状态副本翻 ✅、`plan/06` 关 G-6/G-7、`plan/HANDOFF-M6.md`、本节回填 | ❌ 只动 `plan/`、`README.md`（**README 一处「已知环境问题」补行**，见下） |
+
+> **README 的一处补行**（`selftest` 在仓库外报「缺管线声明」）来自真下载复核时的实测发现：
+> 装 wheel 后在仓库外跑 `selftest` 会因 `pipelines/` 按 CWD 相对路径找而失败。
+> 这是**文档缺口**（README 未说明该前提），已补进「已知环境问题」表。
+> 按 `plan/05` §五 第 5 条，`README.md` 属允许的非交付面；`src/`、`rules.json`、`pipelines/`、`fixtures/` **零差异**。
 
 ---
 
 ## 三、阶段 7 覆盖对账
 
 > 逐条给出口门一个归宿，三态不许留空：**实现**（贴命令+输出）/ **不适用**（写具体理由）/ **待首推**（无远端期间如实标注）。
+> **本表在 tag 树内版本里 `待首推` 项 = 发布动作尚未发生**；tag 之后的提交把它逐条改为实测结论（本节现为改后版本）。
 
 | 出口门 | 状态 | 证据 / 不适用理由 |
 |---|---|---|
-| 发布物本体已验（真下载 + 中立目录） | 待首推 | 无远端期间无法真下载；本地等价 = §1.2「中立 CWD 全链」+ §2.3 待回填 |
+| 发布物本体已验（真下载 + 中立目录） | 实现 | §2.4：`gh release download` → `sha256sum -c` 两件 OK → 全新 venv 装 wheel → 中立 CWD 跑 `run --expected` 首屏三段正确 |
 | 入仓工具在无 `.git` 树里能跑 | 实现 | sdist 解包树（无 `.git`）跑布局门 + 脱敏门 + 全量 pytest 全绿：§1.2 |
 | 发布包实测：README 每条命令在解包树真敲 | 实现 | §1.3 十四条逐条退出码；干净 clone + 全新 venv，非 0 码均为明示语义 |
 | README 前置条件单列成节 | 实现 | `README.md`「安装」三行前置（venv / `python -m pip` 而非 `py`）+「已知环境问题」表 |
 | 留档第三栏自指约束（不写 tag OID / sha / 包哈希） | 实现 | 本文顶部自指约束；§二 用自指表述「含本记录完整内容的那个提交」 |
-| 附件与 tag 树逐字节同源（共有文件比对 + 两侧独有集合点名） | 待首推 | §2.3；判据已按「不同构」写成共有文件比对，不是 `diff -r` |
+| 附件与 tag 树逐字节同源（共有文件比对 + 两侧独有集合点名） | 实现 | §2.4：共有 **79 文件 / 0 差异**；两侧独有集合逐项点名（3 + 8，全是构建/入包元数据）。**字节级**复现的边界见 §2.4 末尾（sdist 嵌 mtime，wheel 在 `SOURCE_DATE_EPOCH` 下可字节复现） |
 | 源码包自足（`MANIFEST.in` 白名单） | 实现 | `MANIFEST.in` 白名单 + 解包树两门全绿 + 211 passed：§1.2 |
 | 构建排在交付面定稿之后 | 实现 | 顺序 = 版本/夹具/README 定稿 → 全量测试 → build → 双装态验证 → tag |
 | README 提到的附件名真在 Release 里 | 实现 | `tests/test_readme_contract.py::test_readme_artifact_names_match_setuptools_normalization`（下划线形态；变异已验红） |
 | 对外样例产物在中立示意目录生成 | 不适用 | 本项目不发布样例报告产物；`runs/` 是运行产物且被 gitignore，附件只有 sdist/wheel |
 | 附件口径四选一 + 留档写明 | 实现 | 口径 = **sdist + wheel + `SHA256SUMS`**（§1.1）；`SHA256SUMS` 只由 CI 产（R7） |
-| 附件 sha256 只写不动点（Release 正文 / tag 后追加） | 实现 | 本文 §一 不写哈希；§二 与 Release 正文登记（待回填） |
+| 附件 sha256 只写不动点（Release 正文 / tag 后追加） | 实现 | §一（进 tag 树的那半）不写任何哈希；§2.2 与 Release 正文登记 digest |
 | 版本号四处一致由机器断言 | 实现 | 单一来源 `__init__.__version__` + `pyproject` dynamic；`tests/test_skeleton.py::test_version_matches_pyproject` + `test_readme_contract.py` 断言产物名带版本 |
 | 随包 README 状态行不承载发布状态 | 实现 | README 状态表加注「本表记录开发里程碑，不是发布状态；发布状态以 Release 页为准」 |
-| DoD 打勾只在事实落地后 | 实现 | 本文 §一 DoD 项全部有实测行；§二 待回填项保持「待回填」不预填 |
+| DoD 打勾只在事实落地后 | 实现 | §一 全部有实测行；§二 在 tag 后才回填（tag 树内那版 §二 是待回填骨架） |
 | 脱敏四步 + 产物本体扫描 | 实现 | §1.4 五步；产物扫描 39 成员 0 命中 |
-| CI 首跑（G-6） | 待首推 | 无远端期间一切 CI 结论只能写「本地等价校验」；§2.2 回填 |
-| tag + Release + 附件（G-7） | 待首推 | §2.1 / §2.3 回填 |
+| CI 首跑（G-6） | 实现 | §2.3：3 个 run 全绿；四矩阵各 192 passed / 19 skipped / 0 failed；skip 逐条指认到 Excel COM 声明式跳过 |
+| tag + Release + 附件（G-7） | 实现 | §2.1：annotated tag（远端 `object.type=tag`）+ Release `isDraft=false` + 3 附件；§2.4 真下载复核通过 |
 | 计数差异逐项归因（dev vs 干净环境 vs CI） | 实现 | dev 211 / 干净 clone 192+19skip / sdist 解包 211；19 条 skip 逐条指认到 Excel COM 声明式跳过 |
 | 零网络声明可核验 | 实现 | `tests/test_report.py::test_no_network_imports`（AST 扫包内全部 .py）；wheel 产物扫描 0 网络客户端 |
 | 缓议项清零 | 实现 | `plan/06` §五 Q1–Q5 全部「保持」，无悬空项 |

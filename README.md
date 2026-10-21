@@ -25,7 +25,7 @@ GATE: recall 1.00 precision 1.00 unclassified 0
 | M3 | 归因规则引擎（18 条） | ✅ |
 | M4 | 真值夹具生成器 + 门禁 | ✅ |
 | M5 | 报告与 CI 出口 | ✅ |
-| M6 | 脱敏与发布 | ⬜ |
+| M6 | 脱敏与发布 | ✅ |
 
 > **本表记录的是开发里程碑**（随包快照，反映的是定版那一刻的状态），**不是发布状态**。
 > "这一版是否已发布 / CI 是否绿"以 **Release 页**为准——随包文档不该是发布状态的第一手来源。
@@ -166,6 +166,7 @@ python -m pytest -q
 | `py -m pip install` 装完仍找不到 `tripwire` | Windows `py` 启动器无视 venv | venv 里一律用 `python -m pip` |
 | 报告里的 `Excel 16.0 Build 20326` 只在本机出现 | Build 号由 COM 读数决定 | 这是**运行时指纹**不是固定值；别的机器读到的就是那台机器的号 |
 | 装 wheel 后 `runs/` 落在 CWD | `--out-dir` 默认 `runs/` | 显式给 `--out-dir` |
+| 装 wheel 后在仓库外跑 `selftest` 报「缺管线声明」 | `selftest` 校验的是**随包 `pipelines/` 声明**，按 CWD 相对路径找 | 在仓库根跑；或用 `--pipeline <绝对/相对路径>` 直接指定声明 |
 
 ## 从 Release 复验
 
