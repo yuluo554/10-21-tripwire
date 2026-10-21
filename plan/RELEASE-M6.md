@@ -150,6 +150,25 @@ e8a4b7a415ec2f314ec7aaff119e8767b3682306340a06a04b562822ac9403db  tripwire-0.1.0
 > 这是**文档缺口**（README 未说明该前提），已补进「已知环境问题」表。
 > 按 `plan/05` §五 第 5 条，`README.md` 属允许的非交付面；`src/`、`rules.json`、`pipelines/`、`fixtures/` **零差异**。
 
+### 2.6 脱敏门的扫描面差异（逐项归因，防"双绿但悄悄少扫"）
+
+| 环境 | 扫到的文本文件 | 差异归因 |
+|---|---|---|
+| 开发机工作树 | 87 | 含本地 `pip install -e .` 产生的 `src/tripwire.egg-info/`（6 份：`PKG-INFO` / `SOURCES.txt` / `dependency_links.txt` / `entry_points.txt` / `requires.txt` / `top_level.txt`） |
+| 公开仓库全新 clone | 81 | 87 − 6 = 81；`*.egg-info/` 在 `.gitignore`，**不入库**，故 clone 里没有 |
+
+> 两侧都是 **0 命中**，但"扫了 81 份"与"扫了 87 份"不是同一个证明。差值已逐项指认到构建残留，
+> **不是**门少扫了交付面文件。判别 = "这条绿的扫描面里，到底有几个文件？"——数得出来才算证据。
+
+### 2.7 公开仓库全新 clone 复核（最终形态）
+
+| 检查 | 命令 | 结果 |
+|---|---|---|
+| clone | `git clone --depth 1 https://github.com/yuluo554/10-21-tripwire.git` | ✅ |
+| 布局门 | `python tools/check_sprint_layout.py` | ✅ 全绿（交接单 7 / 状态副本 4） |
+| 脱敏门 | `python tools/check_desensitized.py` | ✅ 0 命中（81 份，见 §2.6） |
+| 全量测试 | 全新 venv + `pip install -e ".[dev]"` → `pytest` | ✅ **192 passed / 19 skipped**（与 CI 四矩阵一致） |
+
 ---
 
 ## 三、阶段 7 覆盖对账
@@ -177,6 +196,6 @@ e8a4b7a415ec2f314ec7aaff119e8767b3682306340a06a04b562822ac9403db  tripwire-0.1.0
 | 脱敏四步 + 产物本体扫描 | 实现 | §1.4 五步；产物扫描 39 成员 0 命中 |
 | CI 首跑（G-6） | 实现 | §2.3：3 个 run 全绿；四矩阵各 192 passed / 19 skipped / 0 failed；skip 逐条指认到 Excel COM 声明式跳过 |
 | tag + Release + 附件（G-7） | 实现 | §2.1：annotated tag（远端 `object.type=tag`）+ Release `isDraft=false` + 3 附件；§2.4 真下载复核通过 |
-| 计数差异逐项归因（dev vs 干净环境 vs CI） | 实现 | dev 211 / 干净 clone 192+19skip / sdist 解包 211；19 条 skip 逐条指认到 Excel COM 声明式跳过 |
+| 计数差异逐项归因（dev vs 干净环境 vs CI） | 实现 | dev 211 / 干净 clone 192+19skip / sdist 解包 211 / 公开仓库 clone 192+19skip；19 条 skip 逐条指认到 Excel COM 声明式跳过；**脱敏门扫描面 87 vs 81 的差值也逐项归因**（§2.6） |
 | 零网络声明可核验 | 实现 | `tests/test_report.py::test_no_network_imports`（AST 扫包内全部 .py）；wheel 产物扫描 0 网络客户端 |
 | 缓议项清零 | 实现 | `plan/06` §五 Q1–Q5 全部「保持」，无悬空项 |
