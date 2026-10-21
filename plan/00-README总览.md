@@ -4,7 +4,7 @@
 
 - **性质**：不参赛项目题 · 发布 GitHub **公开仓库** · 署名 yuluo554
 - **产出**：仓库 `10-21-tripwire`，CLI 入口 `tripwire`；**纯本地 Python CLI，零网络**
-- **状态**：**M4 完成（真值夹具生成器 + 门禁三数）**；M0–M4 已收，M5–M6 未开工。里程碑状态以 §六 表为准
+- **状态**：**M5 完成（报告与 CI 出口）**；M0–M5 已收，M6 未开工。里程碑状态以 §六 表为准
 - **定位宣言**："一份数据经过 CSV→Excel→JSON→SQLite 转一圈，哪些值悄悄变了？本工具给逐单元格差异 + 归因规则名 + 证据 + 出问题的环节。" 现有工具要么只做两文件单元格差异但不解释原因，要么只做单文件体检但不做往返对照。
 - **基准日**：2026-10-20（代理实际检索窗口 **2026-10-19T18:35Z–18:57Z**，UTC 仍在 10-19）
 
@@ -24,11 +24,12 @@
 | `plan/06-交付对标与决策.md` | 提交材料对照 / 评分对照 / 风险登记 / 缺口表 | ✅ v1（M0） |
 | `plan/HANDOFF-M0.md` | M0 收尾交接单（七节） | ✅（M0） |
 | `AGENTS.md` | 方法论锚点 + 布局门命令 + 强制布局清单 | ✅（M0） |
-| `README.md`（仓库根） | 用户向：定位 / 快速开始 / 退出码 / 隐私 | ✅ v0 骨架版（M5 补全用法） |
+| `README.md`（仓库根） | 用户向：定位 / 快速开始 / 退出码 / 隐私 | ✅ v1（M5 补全用法与报告三格式） |
 | `docs/pipeline-schema.md` | 管线声明格式（阶段命名规则、禁止混称 Excel） | ✅（M1） |
 | `docs/diff-schema.md` | 差异记录格式（对齐三策略语义 + `DiffRecord` / `StructureRecord` 形状） | ✅（M2） |
 | `docs/rules.md` | 18 条规则人类可读表（含证据要求与反例） | ✅（M3） |
 | `docs/fixture-pools.md` | 三组样本池构造纪律 | ✅（M4） |
+| `docs/report-schema.md` | 报告三格式形状（首屏三段字面、SARIF 映射、退出码与拒绝判定） | ✅（M5） |
 
 > 状态图例：✅ 已落盘 · 🟡 进行中 · ⬜ 待做。**状态列必须与里程碑同步翻转**（同一提交里改）。
 
@@ -56,6 +57,13 @@
 | 2026-10-21 | **D16·样本形态的合法判据 = "变了的通道集合 ⊆ 该规则的 `possible_stages`"** | `rules.json` 的 `possible_stages` 是归因候选；D1 会把"变化发生在候选外"降级成 `unclassified`。于是**某些形态无论怎么挑都会被降级**——那不是规则错，是样本不该长那样。`rules.json` 已冻结（M4 不得改候选），所以 M4 只能靠**挑形态**让门禁成立，挑不出来的**如实点名**进 `uncovered_rules`（8 条，理由见 `docs/fixture-pools.md` §六）。**禁止为了让它们变绿去放宽谓词**（D4）。 |
 | 2026-10-21 | **D17·夹具表必须稠密（每行每列都有值）** | pandas 的 dtype 推断按列：列里一个空格就把整列推成 `float64`，控制组的 `94016` 被写成 `94016.0`（假差异），precision 当场失败。M4 实测稀疏表得 59 条控制组差异。判别 = "这一列的 dtype，是我决定的还是被某个空格决定的？" |
 | 2026-10-21 | **D18·`gate` 是第一条真正的判定通道；`run`/`diff`/`attribute` 维持 exit 3** | 0/1 的语义里带"门禁通过"，只有 `gate` 同时拿到 expected 与 attributions。`run` 连差异都没算、`diff` 算了但没有真值、`attribute` 有规则名但没有 recall/precision——它们报 0/1 就是"把没验过写成验过了"（D13 的延伸）。`attribute --fail-on unclassified` 仍是**门禁失败的局部形态**，不构成完整判定。 |
+
+### M5 新增决策
+
+| 日期 | 决策 | 结论与理由 |
+|---|---|---|
+| 2026-10-21 | **D19·判定通道 M5 起有三条并列：`run --expected` / `report` / `gate`；"没真值"仍是 exit 3** | D18 说的是"0/1 必须真算过门禁"，M5 把它落到出口上：`plan/02` §一 本就把"编排层 run 串起 M1→M2→M3→M5"写进架构，而首屏第三段就是门禁三数——所以 `run` 给 `--expected` 就一路走到报告并返回 0/1/2，不给就只跑管线与快照、**拒绝判定**（exit 3，输出里明说怎么补真值）。`report` 是"对已存在的 run 重算并出报告"的出口，`--expected` 必填。**这不是放宽 D18**：三条出口都调 `compute_gate`，码都来自门禁。 |
+| 2026-10-21 | **D20·"无损"必然是"空跑通过"（`LOSSLESS` ⇒ `Gate.vacuous`）** | `expected.json` 只登记**会变的格**：某阶段期望集非空 ⇒ 至少上报 1 条差异 ⇒ `LOSSY`。反过来 `LOSSLESS` ⇒ 期望集空且上报 0 ⇒ `vacuous == True`。所以报告在 `vacuous` 时**必须**多打一行"空跑通过不代表覆盖了任何样本"，否则"全绿"可以只是"什么都没查"（M4 不变量 29 的 M5 落地）。 |
 
 ### 弃选项（写题期评估后不采用）
 
@@ -87,10 +95,10 @@
 | `unclassified` 一等公民 + `--fail-on` | 决策 D4 | CLI 开关 | 退出码与计数测试 | ✅ M3 |
 | 三组样本池 + `expected.json` | 全程序化合成 | 随包生成器 | 同 seed 逐字节复现 | ✅ M4 |
 | 门禁三数（recall/precision/unclassified） | 决策 D4 | 报告首屏 | `control-lossless` 组零误报 | ✅ M4 |
-| MD/JSON/SARIF 同源 + 首屏三段 | 设计 | 纯本地 | 三份差异集合一致性测试 | ⬜ M5 |
-| 退出码 0/1/2/3 | 设计 | CLI 契约 | 四条退出码各一条测试 | ⬜ M5 |
-| stable fingerprint 跨 run diff | 设计 | 报告 JSON | 同输入两次 run 的 fingerprint 集合相等 | ⬜ M5 |
-| 纯本地零网络 | 红线 | 无网络客户端依赖 | 依赖树审计 + 请求打桩测试 | ⬜ M5 |
+| MD/JSON/SARIF 同源 + 首屏三段 | 设计 | 纯本地 | `tests/test_report.py::test_three_formats_same_findings`（按 fingerprint 相等）+ `test_first_screen_three_lines` | ✅ M5 |
+| 退出码 0/1/2/3 | 设计 | CLI 契约 | `tests/test_exit_codes.py` 四条各一条（`main` 与真实进程各一遍） | ✅ M5 |
+| stable fingerprint 跨 run diff | 设计 | 报告 JSON | `tests/test_report.py::test_same_input_two_runs_byte_identical`（同输入两次 run 的 fingerprint 集合相等） | ✅ M5 |
+| 纯本地零网络 | 红线 | 无网络客户端依赖 | `tools/check_desensitized.py` 0 命中 + `tests/test_report.py::test_no_network_imports_in_package`（AST 扫描） | ✅ M5 |
 | 发布：tag + Release 附产物 + 发布留档三件套 | 发布纪律 | 公开仓库 | `tools/check_desensitized.py` 0 命中；`plan/RELEASE-M6.md` §覆盖对账无空项 | ⬜ M6 |
 | 方法论装订（AGENTS + 布局门 + plan/00 顶部行） | `ai-tool-project-sprint` 硬约束③ | 纯本地脚本 | `python tools/check_sprint_layout.py` 全绿；`python tools/verify_gate_mutations.py` 17 组按预期（14 红 / 3 SKIP / 0 未按预期） | ✅ M0 |
 | 脱敏门（本机路径 / 用户名 / 回环代理） | 发布纪律 | 纯本地脚本 | `python tools/check_desensitized.py` 0 命中且 4 组注入变异全红 | ✅ M0 |
@@ -134,6 +142,9 @@
 | 夹具金样本（seed 42 / 200 行） | `fixtures/golden/orig.csv`、`fixtures/golden/expected.json`、`fixtures/golden/manifest.json` | M4 | `git ls-files fixtures/golden/` |
 | 样本池构造纪律 | `docs/fixture-pools.md` | M4 | `git ls-files docs/fixture-pools.md` |
 | 门禁三数实现 | `src/tripwire/gate.py` | M4 | `git ls-files src/tripwire/gate.py`；`tripwire gate --help` |
+| 报告渲染器（三格式同源） | `src/tripwire/report/model.py`、`render_md.py`、`render_json.py`、`render_sarif.py` | M5 | `git ls-files src/tripwire/report/`；`tripwire report --help` |
+| 报告测试（出口门 E5） | `tests/test_report.py` | M5 | `git ls-files tests/test_report.py`；`pytest -q tests/test_report.py tests/test_exit_codes.py` |
+| 报告格式文档 | `docs/report-schema.md` | M5 | `git ls-files docs/report-schema.md` |
 | 发布留档 | `plan/RELEASE-M6.md` | M6 | `git cat-file -e <tag>:plan/RELEASE-M6.md` |
 
 > **每一项都必须指得到一个文件**；指不出的现在就删，不留到评分表里变成无主承诺。
@@ -149,7 +160,7 @@
 | **M2 · 差异引擎** | 对齐三策略（`key` 默认 / `position` / `lcs`）+ 四项结构差异 + `--batch` dtype 漂移吸收 | 未给主键 exit 3；原型 9 差异可复现；差异排序稳定（两次运行逐字节一致） | ✅ |
 | **M3 · 归因规则** | 18 条四族规则 + 快照序列筛选 + `unclassified` 一等公民 + `--fail-on` | 原型 9/9 命中、unclassified=0；构造"同规则不同环节"用例 `resolved_stage` 不同；`--explain` 日志格式符合 `data/README` 口径 | ✅ |
 | **M4 · 夹具与门禁** | `gen-fixture` 三组样本池 + `expected.json` + 门禁三数 | 同 seed 逐字节一致（两层）；`control-lossless` 组零误报；三数任一不满足 exit 2；三数打印在报告首屏 | ✅ |
-| **M5 · 报告与 CI 出口** | MD/JSON/SARIF 同源 + 首屏三段 + 退出码 0/1/2/3 + stable fingerprint | 三格式差异集合一致；四条退出码各一条测试；同输入两次 run 的 fingerprint 集合相等；`tripwire --help` 可运行 | ⬜ |
+| **M5 · 报告与 CI 出口** | MD/JSON/SARIF 同源 + 首屏三段 + 退出码 0/1/2/3 + stable fingerprint + 零网络 AST 守门 | 三格式差异集合一致（按 fingerprint）；四条退出码各一条测试（`main` 与真实进程一致）；同输入两次 run 的 fingerprint 集合相等且报告逐字节一致；`tripwire report --help` / `--help` 可运行 | ✅ |
 | **M6 · 脱敏与发布** | 公开仓库发布 | **`git tag` + GitHub Release（附产物：sdist + wheel + `SHA256SUMS`）+ 发布留档 `plan/RELEASE-M6.md`（在 tag 之前落盘进 tag 树，两栏 + 阶段 7 覆盖对账）**；`python tools/check_desensitized.py` 0 命中 | ⬜ |
 
 > **DoD 产物口径**：选 **A) Release 附产物**（sdist + wheel + `SHA256SUMS`，由 CI 生成并上传）。该口径自首提交起不得降级。

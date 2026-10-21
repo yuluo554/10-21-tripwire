@@ -2,16 +2,15 @@
 
 两条退出码纪律（口径单点是 `data/README.md` §6.3，代码侧单点是 `exitcodes.py`）：
 1. `argparse` 的 `SystemExit(2)` 一律在 `main()` 内转成 3——否则"参数写错"会被读成"门禁失败"。
-2. **判定通道只在真有判定时才用**：0/1 的定义里都带"门禁通过"，而门禁在 M4。
-   因此 M1 的 `run` 与 M2 的 `diff` 都**不返回 0/1**——差异算出来了也只说"算出来了多少条"，
-   不说"无损/有损"。M1 期间 `run` 连差异都没算，M2 起 `diff` 算了差异但没有门禁；
-   两者都走用法通道 3，并在输出里把"做了什么"与"拒绝判定"分开写。
+2. **判定通道只在真有判定时才用**：0/1/2 的定义里都带"门禁三数"，而门禁要有真值文件。
+   因此 M5 之后的出口是：`run --expected`、`report`、`gate`（都是 0/1/2），
+   而 `run`（无真值）、`diff`、`attribute` 一律走用法通道 3 并**明说为什么拒绝判定**：
+   跑通 ≠ 判为无损（D18）。
 """
 
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 
@@ -28,23 +27,31 @@ from tripwire.pipeline.errors import (
     StageUnavailable,
 )
 from tripwire.pipeline.schema import PipelineDeclError, load_pipeline, load_pipeline_dict, validate_pipeline_dict
+from tripwire.report import (
+    FORMATS,
+    ReportError,
+    build_run_result,
+    load_expected,
+    write_reports,
+)
 from tripwire.rules.engine import attribute, explain as explain_line
 from tripwire.rules.predicates import load_rules, rule_count
 from tripwire import serialization
 
 PROG = "tripwire"
 
-#: 判定通道尚未接线时 `run` 的说明（M5 接线后随 `_cmd_run` 的对应分支一起删除）
-NO_VERDICT_NOTE = (
-    "NOTE: 本次只执行管线（M1）；差异引擎与门禁在 M2–M5，故**不产出有损/无损判定**，"
-    "退出码走用法通道 3（拒绝判定）而非 0（无损）。"
+#: `run` **未给 `--expected` 真值文件**时的说明：没有真值就没有 recall/precision，
+#: 门禁三数无从产生 → 拒绝判定（exit 3），但管线与逐段快照照常落盘。
+NO_TRUTH_NOTE = (
+    "NOTE: 未给 --expected 真值文件 → **不产出有损/无损判定**（没有 recall/precision 就没有门禁三数），"
+    "退出码走用法通道 3。要看判定与三格式报告，请补真值："
+    "`tripwire run ... --expected expected.json` 或 `tripwire report --run-id <id> --expected expected.json`。"
 )
 
-#: `diff` 的同类说明：差异算出来了，但 0/1 的语义里带"门禁通过"，而门禁在 M4。
-#: 没有门禁就报 0 或 1，等于把"没验过"写成"验过了"。
+#: `diff` 的同类说明：差异算出来了，但没有真值就没有门禁三数。
 NO_GATE_NOTE = (
-    "NOTE: 差异已算出（M2）；门禁三数与判定在 M4–M5，故**不产出有损/无损判定**，"
-    "退出码走用法通道 3（拒绝判定）而非 0/1。"
+    "NOTE: 差异已算出；门禁三数与判定由 `gate` / `report`（或 `run --expected`）产出，"
+    "本条命令**不产出有损/无损判定**，退出码走用法通道 3（拒绝判定）而非 0/1。"
 )
 
 
@@ -70,6 +77,12 @@ def _build_parser() -> argparse.ArgumentParser:
     run.add_argument("--key", help="主键列名（默认对齐策略 key 必需）")
     run.add_argument("--align", choices=("key", "position", "lcs"), default="key")
     run.add_argument("--out-dir", default="runs", help="运行产物目录（默认 runs/）")
+    run.add_argument(
+        "--expected",
+        help="真值文件（expected.json）：**给出即产出判定与报告**（0/1/2）；不给则不判定（exit 3）",
+    )
+    run.add_argument("--stage-index", type=int, help="判定哪个输出阶段（默认取最后一份输出）")
+    run.add_argument("--format", default="md,json,sarif", help="报告格式（默认 md,json,sarif）")
 
     diff = subparsers.add_parser("diff", help="对两份快照做单元格级差异（M2）")
     diff.add_argument("--orig", required=True, help="原始快照 CSV（通常是 stage-0.csv）")
@@ -110,9 +123,18 @@ def _build_parser() -> argparse.ArgumentParser:
     gate.add_argument("--align", choices=("key", "position", "lcs"), default="key")
     gate.add_argument("--stage-index", type=int, help="只对该阶段算（默认取最后一份输出）")
 
-    report = subparsers.add_parser("report", help="渲染 MD/JSON/SARIF（M5）")
+    report = subparsers.add_parser("report", help="渲染 MD/JSON/SARIF 并判定（M5）")
     report.add_argument("--run-id", required=True)
-    report.add_argument("--format", default="md,json,sarif")
+    report.add_argument("--out-dir", default="runs", help="运行产物目录（默认 runs/）")
+    report.add_argument(
+        "--expected",
+        required=True,
+        help="真值文件（expected.json）：首屏第三段 GATE 行的来源（没有真值就不判定）",
+    )
+    report.add_argument("--key", help="主键列名（必须与产出该 run 时一致；--align key 必需）")
+    report.add_argument("--align", choices=("key", "position", "lcs"), default="key")
+    report.add_argument("--stage-index", type=int, help="判定哪个输出阶段（默认取最后一份输出）")
+    report.add_argument("--format", default="md,json,sarif", help="报告格式（默认 md,json,sarif）")
 
     subparsers.add_parser("rules", help="列出规则表").add_argument(
         "--count", action="store_true", help="只打印条数"
@@ -154,8 +176,94 @@ def _cmd_rules(count_only: bool) -> int:
     return exitcodes.LOSSLESS
 
 
-def _cmd_run(pipeline: str, input_csv: str, key: str | None, align: str, out_dir: str) -> int:
-    """执行管线并落快照。**不产出判定**（M1 只做到快照；见 `NO_VERDICT_NOTE`）。"""
+#: `attribute` 的说明：归因有了，但门禁三数（recall/precision）要有真值文件。
+#: 没有 expected.json 就无法算 recall，报 0/1 等于把"没验过"写成"验过了"。
+NO_GATE_NOTE_ATTRIBUTE = (
+    "NOTE: 归因已算出；门禁三数（recall/precision/unclassified 口径）与判定由 `gate` / `report`"
+    "（或 `run --expected`）产出。`unclassified` 计数已给出，但本条命令**不产出有损/无损判定**"
+    "——退出码走用法通道 3，除非显式 `--fail-on unclassified` 且有 unclassified（门禁失败 → 2）。"
+)
+
+
+def _parse_formats(value: str) -> list[str] | None:
+    """`--format md,json,sarif` -> `["md", "json", "sarif"]`；未知格式返回 `None`（CLI 转 exit 3）。
+
+    顺序保留用户给的顺序（落盘与打印都按它），重复项去掉：同一份报告写两次没有意义，
+    而且会让"写了哪几份"的计数说谎。
+    """
+    names = [part.strip() for part in value.split(",") if part.strip()]
+    if not names or any(name not in FORMATS for name in names):
+        return None
+    ordered: list[str] = []
+    for name in names:
+        if name not in ordered:
+            ordered.append(name)
+    return ordered
+
+
+def _print_first_screen(result) -> None:
+    """首屏三段：**必须是最先打印的三行**（顺序与字面固定，`plan/03` M5）。"""
+    for line in result.first_screen():
+        sys.stdout.write(line + "\n")
+
+
+def _print_gate_notes(result) -> None:
+    """空跑要说清楚（`Gate.vacuous` 不许被当成"门禁通过且覆盖了样本"）。"""
+    if result.gate.vacuous:
+        sys.stdout.write(
+            "NOTE: 本次 0 条差异 —— 门禁「通过」是空跑通过，不代表覆盖了任何样本。\n"
+        )
+    if not result.gate.passed:
+        sys.stderr.write(
+            f"GATE FAILED  recall {result.gate.recall:.2f} / precision {result.gate.precision:.2f} / "
+            f"unclassified {result.gate.unclassified}（三者须同时满足，data/README §6.2）\n"
+        )
+
+
+def _print_report_tail(result, written, out_dir) -> None:
+    sys.stdout.write(
+        f"REPORT  run_id {result.run_id}  pipeline {result.pipeline}  "
+        f"stage {result.stage_index} ({result.stage_name})\n"
+        f"           strategy={result.strategy}  rows {result.rows_compared}  "
+        f"cells {len(result.diffs)}/{result.cells_compared}  structures {len(result.structures)}  "
+        f"rules {len(result.rules_used)}  unclassified {result.unclassified_count}\n"
+    )
+    for path in written:
+        sys.stdout.write(f"      {path.name:<12} {path}\n")
+    sys.stdout.write(f"      out  {out_dir}\n")
+
+
+def _build_report(run, expected_path, key, align, stage_index):
+    """读真值 -> 建内存结果。失败一律 `ReportError`（调用方转 exit 3）。"""
+    return build_run_result(
+        run,
+        load_expected(expected_path),
+        key=key,
+        strategy=align,
+        stage_index=stage_index,
+    )
+
+
+def _cmd_run(
+    pipeline: str,
+    input_csv: str,
+    key: str | None,
+    align: str,
+    out_dir: str,
+    expected_path: str | None,
+    stage_index: int | None,
+    formats_raw: str,
+) -> int:
+    """执行管线；**给了真值才判定**（M5 起 `run` 串起 M1→M2→M3→M5，见 plan/02 §一）。
+
+    - 给了 `--expected`：跑管线 → 差异 → 归因 → 门禁 → 三格式报告 → 首屏三段 → 0/1/2。
+    - 没给 `--expected`：只跑管线与快照，**拒绝判定**（exit 3，见 `NO_TRUTH_NOTE`）。
+    """
+    formats = _parse_formats(formats_raw)
+    if formats is None:
+        sys.stderr.write(f"FAIL  未知 --format {formats_raw!r}（可用: {', '.join(FORMATS)}）\n")
+        return exitcodes.USAGE
+
     try:
         decl = load_pipeline(pipeline)
     except PipelineDeclError as error:
@@ -187,6 +295,26 @@ def _cmd_run(pipeline: str, input_csv: str, key: str | None, align: str, out_dir
         sys.stderr.write(f"FAIL  {error}\n")
         return exitcodes.USAGE
 
+    if expected_path is not None:
+        try:
+            result = _build_report(run, expected_path, key, align, stage_index)
+        except ReportError as error:
+            # 管线已跑完（产物是合法留档），但判定无从产生 → 拒绝判定，退出码 3
+            sys.stderr.write(f"FAIL  {error}\n")
+            return exitcodes.USAGE
+        written = write_reports(result, run.out_dir, formats)
+        _print_first_screen(result)
+        _print_gate_notes(result)
+        _print_pipeline_lines(run)
+        _print_report_tail(result, written, run.out_dir)
+        return result.exit_code
+
+    _print_pipeline_lines(run)
+    sys.stdout.write(NO_TRUTH_NOTE + "\n")
+    return exitcodes.USAGE
+
+
+def _print_pipeline_lines(run) -> None:
     sys.stdout.write(
         f"PASS  pipeline {run.pipeline_name}  run_id {run.run_id}"
         f"{'  (reused)' if run.reused else ''}  stages {len(run.outputs)}\n"
@@ -197,18 +325,45 @@ def _cmd_run(pipeline: str, input_csv: str, key: str | None, align: str, out_dir
             f"      stage {snapshot.stage_index} = {snapshot.stage_name:<14} "
             f"rows {snapshot.rows}  cols {snapshot.cols}  sha256 {sha}\n"
         )
-    sys.stdout.write(f"      out  {run.out_dir}\n")
-    sys.stdout.write(NO_VERDICT_NOTE + "\n")
-    return exitcodes.USAGE
 
 
-#: `attribute` 的说明：归因有了，但门禁三数（recall/precision）在 M4。
-#: 没有 expected.json 就无法算 recall，报 0/1 等于把"没验过"写成"验过了"。
-NO_GATE_NOTE_ATTRIBUTE = (
-    "NOTE: 归因已算出（M3）；门禁三数（recall/precision/unclassified 口径）与判定在 M4–M5。"
-    "`unclassified` 计数已给出，但**不产出有损/无损判定**——退出码走用法通道 3，"
-    "除非显式 `--fail-on unclassified` 且有 unclassified（门禁失败 → 2）。"
-)
+def _cmd_report(
+    run_id: str,
+    out_dir: str,
+    expected_path: str,
+    key: str | None,
+    align: str,
+    stage_index: int | None,
+    formats_raw: str,
+) -> int:
+    """对一次已存在的 run 重算判定并渲染 MD/JSON/SARIF（M5 的判定出口，0/1/2/3）。
+
+    为什么 `report` 也要 `--expected`：首屏第三段就是门禁三数，没有真值就只能编一个。
+    差异与归因照旧从**当时那批快照**重算（`load_run` 只读产物），不重跑管线。
+    """
+    formats = _parse_formats(formats_raw)
+    if formats is None:
+        sys.stderr.write(f"FAIL  未知 --format {formats_raw!r}（可用: {', '.join(FORMATS)}）\n")
+        return exitcodes.USAGE
+
+    run_dir = Path(out_dir) / run_id
+    try:
+        run = runner.load_run(run_dir)
+    except (RunNotFound, OSError) as error:
+        sys.stderr.write(f"FAIL  读不到该 run: {run_dir}\n      - {error}\n")
+        return exitcodes.USAGE
+
+    try:
+        result = _build_report(run, expected_path, key, align, stage_index)
+    except ReportError as error:
+        sys.stderr.write(f"FAIL  {error}\n")
+        return exitcodes.USAGE
+
+    written = write_reports(result, run_dir, formats)
+    _print_first_screen(result)
+    _print_gate_notes(result)
+    _print_report_tail(result, written, run_dir)
+    return result.exit_code
 
 
 def _cmd_diff(
@@ -389,16 +544,16 @@ def _cmd_gate(
     align: str,
     stage_index: int | None,
 ) -> int:
-    """算门禁三数并判定（M4）。**这是第一条真正的判定通道**：0/1/2。
+    """算门禁三数并判定（M4）。**第一条真正的判定通道**：0/1/2。
 
     - 0 = 无损（0 条差异 且 门禁通过）
     - 1 = 有损（有差异 且 门禁通过）
     - 2 = 门禁失败（recall / precision / unclassified 任一不满足）
     - 3 = 用法错误（读不到 run / 真值文件 / 缺 --key）
-    """
-    from tripwire.gate import compute_gate
-    from tripwire.rules.engine import attribute
 
+    M5 起 `gate` 与 `report` / `run --expected` 共用同一套"差异→归因→门禁"实现
+    （`report.model.build_run_result`）：这里只保留它自己的打印形态。
+    """
     run_dir = Path(out_dir) / run_id
     try:
         run = runner.load_run(run_dir)
@@ -407,47 +562,14 @@ def _cmd_gate(
         return exitcodes.USAGE
 
     try:
-        with open(expected_path, "r", encoding="utf-8", newline="") as handle:
-            expected_payload = json.loads(handle.read())
-    except (OSError, json.JSONDecodeError) as error:
-        sys.stderr.write(f"FAIL  真值文件不可读: {expected_path}\n      - {error}\n")
-        return exitcodes.USAGE
-    if not isinstance(expected_payload, dict) or not isinstance(expected_payload.get("cells"), list):
-        sys.stderr.write(f"FAIL  {expected_path} 不是一份 expected.json（缺 cells 列表）\n")
-        return exitcodes.USAGE
-
-    if align == "key" and not key:
-        sys.stderr.write("FAIL  未声明主键：--align key 需要 --key <列名>。\n")
-        return exitcodes.USAGE
-
-    outputs = [snapshot for snapshot in run.stages if snapshot.stage_index > 0 and snapshot.ok]
-    if not outputs:
-        sys.stderr.write(f"FAIL  {run_dir} 里没有任何成功的输出阶段，无从判定。\n")
-        return exitcodes.USAGE
-    target = stage_index if stage_index is not None else outputs[-1].stage_index
-    if target not in {snapshot.stage_index for snapshot in outputs}:
-        sys.stderr.write(
-            f"FAIL  指定阶段 {target} 不在该 run 的输出里（可用: "
-            f"{', '.join(str(snapshot.stage_index) for snapshot in outputs)}）。\n"
-        )
-        return exitcodes.USAGE
-
-    try:
-        orig, _ = read_csv(run.out_dir / "stage-0.csv")
-        got, _ = read_csv(run.out_dir / f"stage-{target}.csv")
-    except (FileNotFoundError, UnicodeDecodeError) as error:
-        sys.stderr.write(f"FAIL  快照不可读: {error}\n")
-        return exitcodes.USAGE
-
-    try:
-        result = diff_tables(orig, got, strategy=align, key=key, stage_index=target)
-    except DiffError as error:
+        result = _build_report(run, expected_path, key, align, stage_index)
+    except ReportError as error:
         sys.stderr.write(f"FAIL  {error}\n")
         return exitcodes.USAGE
 
-    stage_name = run.stage(target).stage_name
-    attributions = attribute(result.diffs, run, key=key, strategy=align)
-    gate = compute_gate(expected_payload["cells"], attributions, stage_name=stage_name)
+    gate = result.gate
+    target = result.stage_index
+    stage_name = result.stage_name
 
     sys.stdout.write(
         f"GATE RUN  run_id {run.run_id}  pipeline {run.pipeline_name}  "
@@ -484,9 +606,7 @@ def _cmd_gate(
             f"GATE FAILED  recall {gate.recall:.2f} / precision {gate.precision:.2f} / "
             f"unclassified {gate.unclassified}（三者须同时满足，data/README §6.2）\n"
         )
-        return exitcodes.GATE_FAILED
-
-    return exitcodes.LOSSLESS if not result.diffs and not result.structures else exitcodes.LOSSY
+    return result.exit_code
 
 
 def _structure_summary(detail) -> str:
@@ -544,14 +664,6 @@ def _cmd_selftest() -> int:
     return exitcodes.LOSSLESS
 
 
-def _not_implemented(command: str, milestone: str) -> int:
-    sys.stderr.write(
-        f"tripwire {command}: 未实现（{milestone}）。\n"
-        f"当前为骨架期：本命令不产出任何结论，退出码 {exitcodes.USAGE}（用法通道）。\n"
-    )
-    return exitcodes.USAGE
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     try:
@@ -576,7 +688,16 @@ def main(argv: list[str] | None = None) -> int:
     if command == "selftest":
         return _cmd_selftest()
     if command == "run":
-        return _cmd_run(args.pipeline, args.input, args.key, args.align, args.out_dir)
+        return _cmd_run(
+            args.pipeline,
+            args.input,
+            args.key,
+            args.align,
+            args.out_dir,
+            args.expected,
+            args.stage_index,
+            args.format,
+        )
     if command == "diff":
         return _cmd_diff(args.orig, args.got, args.key, args.align, args.batch, args.stage_index, args.json_out)
     if command == "attribute":
@@ -602,7 +723,15 @@ def main(argv: list[str] | None = None) -> int:
             args.stage_index,
         )
     if command == "report":
-        return _not_implemented("report", "M5")
+        return _cmd_report(
+            args.run_id,
+            args.out_dir,
+            args.expected,
+            args.key,
+            args.align,
+            args.stage_index,
+            args.format,
+        )
 
     sys.stderr.write(f"{PROG}: 未知子命令 {command}\n")
     return exitcodes.USAGE

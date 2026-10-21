@@ -6,9 +6,12 @@
 
 ```
 VERDICT: LOSSY (9/14 cells, 5 rules)
-FIRST LOSS AT: stage 2 = excel_com_csv (Excel 16.0 Build 20326)
+FIRST LOSS AT: stage 1 = excel_com_csv (Excel 16.0 Build 20326)
 GATE: recall 1.00 precision 1.00 unclassified 0
 ```
+
+> 前三行是 `tripwire report` / `run --expected` 的实际首屏（数值随本次运行变；上例是原型 14 单元格样本）。
+> `stage <k>` 是**输出阶段序号**：`stage-1` 是第一份输出（`stage-0` 是输入副本）。
 
 现有工具要么只做两文件单元格差异但不解释原因（qsv diff / csvdiff / daff），要么只做单文件体检但不做往返对照（pandera / Great Expectations / Soda / frictionless）。`tripwire` 把"差异、归因、环节"三件事钉在同一条可复现管线上，并把 `unclassified` 当作一等公民。
 
@@ -21,13 +24,16 @@ GATE: recall 1.00 precision 1.00 unclassified 0
 | M2 | 单元格级差异引擎 | ✅ |
 | M3 | 归因规则引擎（18 条） | ✅ |
 | M4 | 真值夹具生成器 + 门禁 | ✅ |
-| M5 | 报告与 CI 出口 | ⬜ |
+| M5 | 报告与 CI 出口 | ✅ |
 | M6 | 脱敏与发布 | ⬜ |
 
-> 开发中。当前可用：`--help` / `--version` / `validate-pipeline` / `rules --count` / `selftest` / **`run`（只跑管线与逐段快照）** / **`diff`（两份快照的单元格级差异 + 四项结构差异）** / **`attribute`（18 条规则归因 + 环节定位）** / **`gen-fixture`（真值夹具生成器）** / **`gate`（门禁三数判定：0/1/2）**；`report` 返回退出码 3（用法通道）。
+> 首期五模块已全部接线。可用子命令：`--help` / `--version` / `validate-pipeline` / `rules --count` /
+> `selftest` / `run`（可带 `--expected` 一路判到报告）/ `diff` / `attribute` /
+> `gen-fixture` / `gate` / **`report`（MD / JSON / SARIF 三格式 + 首屏三段）**。
 >
-> **`run` / `diff` / `attribute` 都不返回 0/1**：退出码 0/1 的语义里都带"门禁通过"，而只有 `gate` 同时拿到真值与归因。`run` 连差异都没算；`diff` 算了差异但没有真值；`attribute` 给了规则名与环节但没有 recall/precision。跑通 ≠ 判为无损。
-> 判定通道只有两处出口：**`gate`（0/1/2）** 与 `attribute --fail-on unclassified`（局部：有 unclassified 时返回 2）。
+> **0/1/2 只出自"真算过门禁"的出口**：`run --expected` / `report` / `gate`。`run`（不给 `--expected`）、
+> `diff`、`attribute` 拿不到 recall / precision，一律走用法通道 3 并**明说"不产出有损/无损判定"**
+> ——跑通 ≠ 判为无损。
 
 ## 安装
 
@@ -60,7 +66,26 @@ tripwire selftest        # 同时报告本机四条通道是否可用
 tripwire gen-fixture --seed 42 --rows 200 --out-dir fixtures/golden   # 金样本；也可只生成某一池
 tripwire run --pipeline pipelines/excel_com.json --input fixtures/golden/orig.csv --key id
 tripwire gate --run-id <run_id> --expected fixtures/golden/expected.json --key id   # 0 无损 / 1 有损 / 2 门禁失败
+
+# 一条命令判到底：跑管线 → 差异 → 归因 → 门禁 → 三格式报告（首屏就是判定三段）
+tripwire run --pipeline pipelines/json_sqlite.json --input fixtures/golden/orig.csv \
+    --key id --expected fixtures/golden/expected.json
+# 对已有 run 重算并出报告（--expected 必填：没有真值就没有 recall/precision）
+tripwire report --run-id <run_id> --expected fixtures/golden/expected.json --key id --format md,json,sarif
 ```
+
+`report` / `run --expected` 的 stdout 前三行就是判定本身，可以直接被 CI 抓：
+
+```
+VERDICT: LOSSY (45/1600 cells, 3 rules)
+FIRST LOSS AT: stage 1 = json_sqlite_csv (SQLite 3.49.1)
+GATE: recall 1.00 precision 1.00 unclassified 0
+```
+
+产物落在同一个 run 目录里：`runs/<run_id>/report.md`（人读）、`report.json`（机读）、
+`report.sarif`（CI 注解：`ruleId` = 规则名、`partialFingerprints.primaryLocationLineHash` = `fingerprint`、
+`artifactLocation.uri` = `stage-<k>.csv`）。三份来自**同一个内存结果**，finding 集合按 `fingerprint` 恒等。
+形状与"什么情况不产出报告"见 `docs/report-schema.md`。
 
 ## 退出码
 
@@ -72,15 +97,31 @@ tripwire gate --run-id <run_id> --expected fixtures/golden/expected.json --key i
 | 3 | 用法错误 / 拒绝运行（未声明主键、管线声明非法、缺依赖） |
 
 判定通道 = 0/1/2；用法通道 = 3。**3 不计入"有损/无损"判定。**
+**只有真算过门禁的出口才给 0/1/2**：`run --expected` / `report --expected` / `gate --expected`
+——没有真值就没有 recall/precision，宁可拒绝判定（3）也不报 0/1。
+
+## 报告
+
+`report` / `run --expected` 产三份**同源**报告：
+
+| 文件 | 给谁看 | 关键内容 |
+|---|---|---|
+| `report.md` | 人 | 首屏三段 + 结论 + 逐条归因（含 `fingerprint`）+ 结构差异 + 逐段快照 + 边界 |
+| `report.json` | 机 | `RunResult.to_json()`：`findings` / `gate` / `counts` / `first_screen` |
+| `report.sarif` | CI 注解 | SARIF 2.1.0：`ruleId` = 规则名、`partialFingerprints.primaryLocationLineHash` = `fingerprint`、`artifactLocation.uri` = `stage-<k>.csv` |
+
+三份来自**同一个内存结果**（先算一次再渲染三次），finding 集合按 `fingerprint` 恒等。
+报告**不含时间戳、不含绝对路径**：同一输入在不同机器 / 不同 `run_id` 下可逐字节对账。
+形状、"什么情况不产出报告"与"无损必然是空跑通过"这条推论见 `docs/report-schema.md`。
 
 ## 边界与承诺
 
-- **归因上限是"环节"，不是"代码行"。** 工具能证明"值在 stage 2 变成这样"，不能证明"是 openpyxl 的 `%.16g` 那一行"。
-- **纯本地、零网络**（含零遥测、零版本检查）。
+- **归因上限是"环节"，不是"代码行"。** 工具能证明"值在哪一步变成这样"，不能证明"是 openpyxl 的 `%.16g` 那一行"。
+- **纯本地、零网络**（含零遥测、零版本检查）；报告不含时间戳、不含绝对路径。
 - **只读输入、只写 `runs/`**，不自动修复、不写回源文件。
-- **无主键时拒绝运行**（exit 3），不做"智能猜测对齐"。
+- **无主键时拒绝运行**（exit 3）；**没有真值时拒绝判定**（exit 3），不做"智能猜测对齐"。
 - `excel_com_csv` 与 `openpyxl_csv` 是**两个不同阶段**，报告只写实际跑的那个，绝不混称 "Excel"。
-- 夹具全部为**合成数据**，不含真实个人或商户数据。
+- 夹具全部为**合成数据**，不含真实个人或商户数据；报告不构成对常规数据损失率的承诺。
 
 首期范围：四通道（CSV / XLSX / JSON / SQLite）、五模块、18 条规则。YAML / TOML / MessagePack 与 LibreOffice 通道为二期。
 

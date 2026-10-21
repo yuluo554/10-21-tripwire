@@ -94,9 +94,18 @@ tripwire run --pipeline pipelines/pandas.json --input data.csv --key id
 | 同 `run_id` 目录已存在且指纹一致 | 幂等复用，不重跑 |
 | 同 `run_id` 目录已存在但指纹不一致 | 报冲突，`exit 3`（同 id 必须同内容） |
 
-**`run` 不返回 0/1/2。** 0 = 无损、1 = 有损、2 = 门禁失败，三者都要先算出差异；
-差异引擎在 M2、门禁在 M4。M1 的 `run` 只执行管线并落快照，因此走用法通道 `3`，
-并在输出里明确写"不产出有损/无损判定"——**跑通 ≠ 判为无损**。
+**M5 起 `run` 会判定——但只在给了真值的时候。** 0 = 无损、1 = 有损、2 = 门禁失败，
+三者的定义里都带"门禁三数"，而门禁要有 `--expected`（recall / precision 的分母来自真值）：
+
+| 命令 | 退出码 |
+|---|---|
+| `run --expected expected.json` | 0 / 1 / 2（`plan/01` §二 M5 的判定通道） |
+| `report --run-id <id> --expected expected.json` | 0 / 1 / 2（重算同一批快照并出三格式报告） |
+| `gate --run-id <id> --expected expected.json` | 0 / 1 / 2（M4 的第一条判定通道） |
+| `run`（**无 `--expected`**）/ `diff` / `attribute` | **3**，并在输出里明确写"不产出有损/无损判定" |
+
+**跑通 ≠ 判为无损**：没有真值就没有门禁三数，这几条命令宁可走用法通道 3 也不报 0/1
+（D18；`docs/report-schema.md` §四 有完整对照表）。
 
 ---
 

@@ -52,15 +52,19 @@ def test_missing_required_arg_is_usage_error_not_gate_failure():
     assert main(["run", "--pipeline", "x.json"]) == exitcodes.USAGE
 
 
-def test_unimplemented_commands_exit_3():
-    """仍在骨架期的子命令走用法通道。`diff`(M2) / `attribute`(M3) / `gen-fixture`(M4) 都已接线，不在此列。
+def test_unimplemented_commands_are_gone(tmp_path):
+    """骨架期结束了（M5 后**没有**未实现子命令）：剩下的都是"用法通道"的正常拒绝。
 
-    **`gen-fixture` 特意不在这里**：它一跑就会往 `fixtures/out/` 落文件——测试有副作用正是
+    - `attribute` 给一个不存在的 run → 读不到产物 → exit 3；
+    - `report` 缺 `--expected`（必填）→ argparse 拒绝 → exit 3 —— **不是"没实现"**，
+      而是"没有真值就没有门禁三数"（`docs/report-schema.md` §四）。
+
+    `gen-fixture` 特意不在这里：它一跑就会往 `fixtures/out/` 落文件——测试有副作用正是
     方法论要防的形态（"一次普通 pytest 静默改坏工作树"）。它的行为由 `tests/test_fixture.py`
-    在 `tmp_path` 里测。
+    在 `tmp_path` 里测（M4 不变量 34）。
     """
     assert main(["attribute", "--run-id", "x"]) == exitcodes.USAGE
-    assert main(["report", "--run-id", "x"]) == exitcodes.USAGE
+    assert main(["report", "--run-id", "x", "--out-dir", str(tmp_path)]) == exitcodes.USAGE
 
 
 def test_validate_pipeline_all_samples():
