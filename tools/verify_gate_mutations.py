@@ -300,21 +300,37 @@ def v10_ledger_header_missing():
     )
 
 
+def _milestone_done(number: int) -> bool:
+    """状态表里 `M<number>` 是否已 ✅（读 `plan/05` §一）。
+
+    发布留档类变异的靶子判据是**里程碑状态**，不是"文件在不在"：布局门的
+    `LAYOUT.RELEASE` 在发布里程碑未 ✅ 时**早退为 True**（"收尾记录尚不适用"），
+    而 `plan/05` §五 第 1 条又要求留档**先于 tag 落盘**——于是文件已存在、门却还不校验它。
+    按文件存在性做 skip 会在这一窗口里把变异永久 SKIP 掉（实测踩到：V12/V13 报"未按预期"）。
+    """
+    text = _read("plan/05-里程碑与发布.md")
+    for line in text.split("\n"):
+        match = re.match(r"^\|\s*M(\d+)\b", line)
+        if match and int(match.group(1)) == number:
+            return "✅" in line
+    return False
+
+
 def v11_release_section_removed():
-    if not (ROOT / "plan" / "RELEASE-M6.md").is_file():
-        raise NothingToMutate("M6 未完成，发布留档尚不存在（本条在 M6 之前的预期形态）")
+    if not _milestone_done(6):
+        raise NothingToMutate("M6 未完成，LAYOUT.RELEASE 尚未校验发布留档（本条在 M6 之前的预期形态）")
     mutate_text(
         "plan/RELEASE-M6.md",
-        "### 阶段 7 覆盖对账",
-        "### 覆盖",
+        "## 三、阶段 7 覆盖对账",
+        "## 三、覆盖",
         "LAYOUT.RELEASE",
         "V11 删发布留档的覆盖对账小节",
     )
 
 
 def v12_release_two_columns():
-    if not (ROOT / "plan" / "RELEASE-M6.md").is_file():
-        raise NothingToMutate("M6 未完成，发布留档尚不存在（本条在 M6 之前的预期形态）")
+    if not _milestone_done(6):
+        raise NothingToMutate("M6 未完成，LAYOUT.RELEASE 尚未校验发布留档（本条在 M6 之前的预期形态）")
     mutate_text(
         "plan/RELEASE-M6.md",
         "## 二、tag 后追加事实",
@@ -325,9 +341,8 @@ def v12_release_two_columns():
 
 
 def v13_release_doc_missing():
-    path = ROOT / "plan" / "RELEASE-M6.md"
-    if not path.is_file():
-        raise NothingToMutate("M6 未完成，发布留档尚不存在（本条在 M6 之前的预期形态）")
+    if not _milestone_done(6):
+        raise NothingToMutate("M6 未完成，LAYOUT.RELEASE 尚未校验发布留档（本条在 M6 之前的预期形态）")
     mutate_delete("plan/RELEASE-M6.md", "LAYOUT.RELEASE", "V13 删 RELEASE-M6.md")
 
 

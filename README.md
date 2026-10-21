@@ -27,6 +27,10 @@ GATE: recall 1.00 precision 1.00 unclassified 0
 | M5 | 报告与 CI 出口 | ✅ |
 | M6 | 脱敏与发布 | ⬜ |
 
+> **本表记录的是开发里程碑**（随包快照，反映的是定版那一刻的状态），**不是发布状态**。
+> "这一版是否已发布 / CI 是否绿"以 **Release 页**为准——随包文档不该是发布状态的第一手来源。
+> 版本号：`tripwire 0.1.0`（唯一来源 `src/tripwire/__init__.py::__version__`）。
+
 > 首期五模块已全部接线。可用子命令：`--help` / `--version` / `validate-pipeline` / `rules --count` /
 > `selftest` / `run`（可带 `--expected` 一路判到报告）/ `diff` / `attribute` /
 > `gen-fixture` / `gate` / **`report`（MD / JSON / SARIF 三格式 + 首屏三段）**。
