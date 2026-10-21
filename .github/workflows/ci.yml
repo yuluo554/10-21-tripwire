@@ -51,3 +51,42 @@ jobs:
           python -m tripwire rules --count
       - name: Tests
         run: python -m pytest -q
+
+  # 发布产物只在这里生成：SHA256SUMS 由 CI 产出（plan/06 R7），本机不产。
+  # 触发条件 = tag（v*）或手动；分支 push 不产出发布物。
+  release-artifacts:
+    name: build release artifacts
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build backend
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build
+      - name: Build sdist + wheel
+        run: python -m build --sdist --wheel --outdir dist
+      - name: Generate SHA256SUMS
+        run: |
+          cd dist
+          sha256sum *.tar.gz *.whl > SHA256SUMS
+          cat SHA256SUMS
+      - name: Verify checksums locally
+        run: |
+          cd dist
+          sha256sum -c SHA256SUMS
+      - name: Smoke-install wheel in a clean venv
+        run: |
+          python -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/python" -m pip install --upgrade pip
+          "$RUNNER_TEMP/venv/bin/python" -m pip install dist/*.whl
+          "$RUNNER_TEMP/venv/bin/tripwire" --version
+          "$RUNNER_TEMP/venv/bin/tripwire" rules --count
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-dist
+          path: dist/*
+          if-no-files-found: error
