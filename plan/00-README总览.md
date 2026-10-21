@@ -97,8 +97,8 @@
 | 门禁三数（recall/precision/unclassified） | 决策 D4 | 报告首屏 | `control-lossless` 组零误报 | ✅ M4 |
 | MD/JSON/SARIF 同源 + 首屏三段 | 设计 | 纯本地 | `tests/test_report.py::test_three_formats_same_findings`（按 fingerprint 相等）+ `test_first_screen_three_lines` | ✅ M5 |
 | 退出码 0/1/2/3 | 设计 | CLI 契约 | `tests/test_exit_codes.py` 四条各一条（`main` 与真实进程各一遍） | ✅ M5 |
-| stable fingerprint 跨 run diff | 设计 | 报告 JSON | `tests/test_report.py::test_same_input_two_runs_byte_identical`（同输入两次 run 的 fingerprint 集合相等） | ✅ M5 |
-| 纯本地零网络 | 红线 | 无网络客户端依赖 | `tools/check_desensitized.py` 0 命中 + `tests/test_report.py::test_no_network_imports_in_package`（AST 扫描） | ✅ M5 |
+| stable fingerprint 跨 run diff | 设计 | 报告 JSON | `tests/test_report.py::test_fingerprint_stable_across_runs`（同输入两份独立 run 的 fingerprint 集合相等） | ✅ M5 |
+| 纯本地零网络 | 红线 | 无网络客户端依赖 | `tools/check_desensitized.py` 0 命中 + `tests/test_report.py::test_no_network_imports`（AST 扫描） | ✅ M5 |
 | 发布：tag + Release 附产物 + 发布留档三件套 | 发布纪律 | 公开仓库 | `tools/check_desensitized.py` 0 命中；`plan/RELEASE-M6.md` §覆盖对账无空项 | ⬜ M6 |
 | 方法论装订（AGENTS + 布局门 + plan/00 顶部行） | `ai-tool-project-sprint` 硬约束③ | 纯本地脚本 | `python tools/check_sprint_layout.py` 全绿；`python tools/verify_gate_mutations.py` 17 组按预期（14 红 / 3 SKIP / 0 未按预期） | ✅ M0 |
 | 脱敏门（本机路径 / 用户名 / 回环代理） | 发布纪律 | 纯本地脚本 | `python tools/check_desensitized.py` 0 命中且 4 组注入变异全红 | ✅ M0 |

@@ -10,7 +10,7 @@
 
 | 项 | 状态 | 证据（可复跑） |
 |---|---|---|
-| `report/model.py`：`RunResult` + `build_run_result(run, expected, *, key, strategy, stage_index)` | ✅ | `tests/test_report.py`（23 passed）；三条命令共用（`run --expected` / `report` / `gate`） |
+| `report/model.py`：`RunResult` + `build_run_result(run, expected, *, key, strategy, stage_index)` | ✅ | `tests/test_report.py`（26 passed）；三条命令共用（`run --expected` / `report` / `gate`） |
 | `render_md.py` / `render_json.py` / `render_sarif.py`：**只读 `RunResult`** | ✅ | AST 守门 `test_renderers_only_read_run_result`（不 import 差异/规则/门禁/管线，不 `open()`/`read_text()`） |
 | 首屏三段（顺序与字面固定） | ✅ | `test_first_screen_three_lines`（前三行字面）+ `test_lossless_first_screen_literals` |
 | 第三段整行 = **`Gate.line()`**（不重拼格式串） | ✅ | `test_gate_line_comes_from_gate_not_reassembled`（stdout / MD / JSON / SARIF 四处同一串） |
@@ -21,16 +21,16 @@
 | `unclassified` 也是一等公民 finding（三格式都带） | ✅ | `test_unclassified_is_a_first_class_finding`（含 SARIF `ruleId`） |
 | SARIF 2.1.0 形状：`ruleId` / `level` / `partialFingerprints.primaryLocationLineHash` / `stage-<k>.csv` / **不写绝对路径** | ✅ | `test_sarif_shape_and_no_absolute_paths` |
 | 退出码 **0/1/2/3 各一条**（`main(argv)` 与真实进程各一遍） | ✅ | `tests/test_exit_codes.py`：`test_exit_0_lossless_and_gate_passed` / `test_exit_1_lossy_and_gate_passed` / `test_exit_2_gate_failed` / `test_exit_3_usage_channel`（15 passed） |
-| **显式改写** `test_run_does_not_claim_lossless_in_m1` + 删 `NO_VERDICT_NOTE` | ✅ | 现名 `test_run_refuses_verdict_without_truth_and_uses_gate_with_it`；`grep NO_VERDICT_NOTE` 0 命中 |
+| **显式改写** `test_run_does_not_claim_lossless_in_m1` + 删 `NO_VERDICT_NOTE` | ✅ | 现名 `test_run_refuses_verdict_without_truth_and_uses_gate_with_it`；`grep -rn NO_VERDICT_NOTE src/` **0 命中**（历史交接单与改写后的测试注释里仍会提这个名字——那是「上一棒做了什么」的记录，不是活代码） |
 | `_not_implemented()` 删除（M5 后无未实现子命令） | ✅ | `tests/test_skeleton.py::test_unimplemented_commands_are_gone` |
 | 渲染不读时钟（两次渲染逐字节一致 + AST） | ✅ | `test_render_is_clock_free`；`test_same_input_two_runs_byte_identical`（三个报告文件逐字节一致） |
-| 零网络 AST 守门（`src/tripwire/**`） | ✅ | `test_no_network_imports_in_package`（扫 28 个 .py） |
+| 零网络 AST 守门（`src/tripwire/**`） | ✅ | `test_no_network_imports`（扫 28 个 .py） |
 | K11 守门：裸 `json.dump(` 0 命中 | ✅ | `test_no_bare_json_dump_in_package` |
 | G12 机制面：`rules.json` 从包内读到 18 条 | ✅ | `test_rules_json_readable_from_package`（`importlib.resources` + `package-data` 声明） |
 | 首次明确定义的"无损三形态"与首屏第二段字面 | ✅ | `docs/report-schema.md` §二/§三；`plan/03` §M5 的八条补充口径 |
-| 全套测试 | ✅ | `py -3.12 -X utf8 -m pytest` → **204 passed in 105.72s**（M0 17 + M1 36 + M2 30 + M3 34 + M4 60 + M5 27） |
+| 全套测试 | ✅ | `py -3.12 -X utf8 -m pytest` → **207 passed**（分文件：report 26 / exit_codes 15 / fixture 34 / gate 26 / rules 34 / skeleton 17 / diff_engine 30 / pipeline_stages 11 / snapshots 14） |
 | 布局门 / 脱敏门 / 变异验证 | ✅ | 布局门全绿（文档 10 / 交接单 6 / 状态副本 4）；脱敏门 0 命中（扫 84 份）；变异 17 组 **14 红 / 3 SKIP / 0 未按预期** |
-| sdist 自足 | ✅ | `py -3.12 -m build --sdist --wheel` → 解包树两门全绿 + `pytest` exit 0（204 collected；`docs/report-schema.md` 随包） |
+| sdist 自足 | ✅ | `py -3.12 -m build --sdist --wheel` → 解包树两门全绿 + `pytest` 全绿（`docs/report-schema.md` 随包） |
 | G12 的"干净 venv"面 | ✅ | `py -3.12 -m venv` → `pip install --no-deps --no-index <wheel>` → 包内读到 18 条规则 + `tripwire --version` = `0.1.0.dev0` + `--help` 里有 `report`（全程离线） |
 
 **退出码实测（真实进程，金样本 seed 42 / 200 行）**：
@@ -146,7 +146,7 @@ M4 的 34 条仍然全部有效（见 `plan/HANDOFF-M4.md` §二），下面只�
 - **Excel COM 写 CRLF**；其余三通道写 LF。这是真实差异，**不许归一**（报告本身一律 LF）。
 - `python -m tripwire` 需要 `src/` 在 `sys.path`：未 `pip install -e .` 时用 `PYTHONPATH=src`。
 - 临时落点用仓库内 `.tmp/`（已 gitignore）。Git Bash 的 `/tmp` 与 Windows Python 不通。
-- **整库 `pytest` 实测 105.72s**（含 Excel COM 真机跑；M4 手记里的"8–10 分钟"是当时偏保守的估计）。
+- **整库 `pytest` 实测两分钟内跑完**（207 passed；含 Excel COM 真机跑）——M4 手记里的"8–10 分钟"偏保守。
   pytest 收 `addopts = "-q"`，再给一个 `-q` 就成为 `-qq`：**摘要行不打印**，看退出码；
   要摘要就跑 `py -3.12 -m pytest -o addopts="" -q`。
 - **`app.Build` 经 COM 回来是浮点读数 `20326.0`**（`app.Version` 是 `"16.0"` 字符串）：
@@ -156,6 +156,13 @@ M4 的 34 条仍然全部有效（见 `plan/HANDOFF-M4.md` §二），下面只�
 - **无损样本怎么造**：把金样本的 `ctl-*` 行单独成表 + 真值给 `{"cells": []}`
   （`tests/conftest.py::control_only_csv`）。**别用整张金样本**——它必然有差异。
 - **报告里不许出现绝对路径**：`str(run.out_dir)` 一旦被写进报告，`test_sarif_shape_and_no_absolute_paths` 立刻红。
+- **改仓库文件别用 `Path.write_text(t, encoding="utf-8")`（不带 `newline`）**：Windows 上它把每个 `\n`
+  翻成 CRLF，于是**布局门变异 V5 的靶子字符串**（以 `\n` 结尾）当场找不到 → 变异报"靶子过期"
+  （本棒实测踩到：`plan/00` 被写成 CRLF，17 组里 1 组未按预期）。一律给 `newline="\n"`
+  ——`Path.write_text(..., newline=)` 是 **3.10+** 就有，而 `Path.read_text(newline=)` 才是 3.13+（不对称，别记混）。
+  判别：`py -3.12 -c "import pathlib;print(b'\r\n' in pathlib.Path('X').read_bytes())"`。
+  另注：`.gitattributes` 声明 `* text=auto eol=lf`，所以**入库字节一直是 LF**；坏的是**工作树**，
+  门与变异脚本读的都是工作树。
 - **`Argparse` 的 `--expected` 必填**在 `report` 上：缺它走的是**参数错误 → 3**，不是"缺真值"分支。
 
 ---
@@ -172,10 +179,10 @@ M4 的 34 条仍然全部有效（见 `plan/HANDOFF-M4.md` §二），下面只�
 - [x] **显式改写** `test_run_does_not_claim_lossless_in_m1` + 删 `NO_VERDICT_NOTE` + 删 `_not_implemented()`
 - [x] 零网络 AST 守门（`src/tripwire/**`）
 - [x] 渲染不读时钟（两次渲染逐字节一致 + AST）+ 同输入两次 run 报告逐字节一致
-- [x] `tests/test_report.py`（E5）23 passed；`tests/test_exit_codes.py` 15 passed
-- [x] 全套 `pytest -q` → 204 passed
+- [x] `tests/test_report.py`（E5）26 passed；`tests/test_exit_codes.py` 15 passed
+- [x] 全套 `pytest` → 207 passed（110.43s；含 Excel COM 真机）
 - [x] 布局门全绿 / 脱敏门 0 命中（84 份）/ 变异 17 组（14 红 / 3 SKIP / 0 未按预期）
-- [x] sdist 解包后自足（两门 + pytest exit 0，204 collected）；wheel + 干净 venv 能读到包内 `rules.json` 与 `report` 子命令
+- [x] sdist 解包后自足（两门全绿 + pytest 全绿）；wheel + 干净 venv 能读到包内 `rules.json` 与 `report` 子命令
 - [x] 4 处状态副本一致（M0–M5 ✅ / M6 ⬜）；`plan/06` 缺口 G-5 关闭
 - [x] `docs/report-schema.md` 落盘；`plan/03` §M5 补八条落地口径；`plan/02` §四 退出码表改写
 - [ ] CI 首跑 —— **不适用本轮**（无远端）。写"CI 待首推验证"，不写"CI 绿"

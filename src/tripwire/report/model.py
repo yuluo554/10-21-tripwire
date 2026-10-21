@@ -312,7 +312,12 @@ def build_run_result(
 
 
 def load_expected(path: str | Path) -> list[Mapping[str, Any]]:
-    """读 `expected.json` 的 `cells`（形状不对 → `ReportError`，不猜）。"""
+    """读 `expected.json` 的 `cells`（形状不对 → `ReportError`，不猜）。
+
+    **为什么连每条的形状都要查**：`compute_gate` 会解 `item["cell"]` 与 `item["p_after"]`，
+    形状不对会抛 `KeyError` / `ValueError` —— 一个未接住的异常会让进程以 **1**（"有损"）
+    退出，那正是"真值文件写错了"被读成"数据有损"的最坏形态。所以这里一律挡成 exit 3。
+    """
     try:
         with open(path, "r", encoding="utf-8", newline="") as handle:
             payload = json.loads(handle.read())
@@ -320,7 +325,27 @@ def load_expected(path: str | Path) -> list[Mapping[str, Any]]:
         raise ReportError(f"真值文件不可读: {path}: {error}") from error
     if not isinstance(payload, dict) or not isinstance(payload.get("cells"), list):
         raise ReportError(f"{path} 不是一份 expected.json（缺 cells 列表）")
-    return payload["cells"]
+    cells = payload["cells"]
+    for index, item in enumerate(cells):
+        _check_expected_cell(item, path, index)
+    return cells
+
+
+def _check_expected_cell(item: Any, path: str | Path, index: int) -> None:
+    """一条 `cells` 的形状：`{cell: [row_key, col], rule: str, p_after: {stage: 文本}}`。"""
+    where = f"{path} 的第 {index} 条"
+    if not isinstance(item, dict):
+        raise ReportError(f"{where}不是对象（expected.json 的 cells 每项必须是对象）")
+    cell = item.get("cell")
+    if not isinstance(cell, (list, tuple)) or len(cell) != 2 or not all(
+        isinstance(part, str) for part in cell
+    ):
+        raise ReportError(f"{where}的 cell 必须是 [row_key, col] 两个字符串")
+    if not isinstance(item.get("rule"), str):
+        raise ReportError(f"{where}缺 rule（字符串）")
+    after = item.get("p_after")
+    if not isinstance(after, dict) or not after:
+        raise ReportError(f"{where}的 p_after 必须是 {{stage: 期望文本}} 且非空")
 
 
 __all__ = [

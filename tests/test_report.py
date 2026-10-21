@@ -435,6 +435,26 @@ def test_render_is_clock_free(golden_run):
                 assert called not in forbidden_calls, f"{name} 里出现读时钟/随机的调用: {called}"
 
 
+def test_fingerprint_stable_across_runs(golden_run, tmp_path):
+    """**K10 / G9**：同输入两次 run 的 fingerprint 集合相等（报告可跨 run 对账）。
+
+    `fingerprint = sha256(row_key ␟ col ␟ rule)[:16]`，不含 run_id / 路径 / 时间戳，
+    所以它才敢当"跨机器、跨 run 的 finding 身份"。这里用**两份独立目录**的 run 来验
+    （不是同一份结果读两遍）。
+    """
+    _, run = golden_run
+    again = run_pipeline(
+        load_pipeline(PIPELINES / "json_sqlite.json"), GOLDEN / "orig.csv", tmp_path / "stable"
+    )
+    first = build_run_result(run, _golden_expected(), key="id", strategy="key")
+    second = build_run_result(load_run(again.out_dir), _golden_expected(), key="id", strategy="key")
+    assert first.run_id == second.run_id
+    assert [item.fingerprint for item in first.attributions] == [
+        item.fingerprint for item in second.attributions
+    ]
+    assert len(first.attributions) > 0, "空集相等是假稳定"
+
+
 def test_same_input_two_runs_byte_identical(golden_run, tmp_path):
     """G9：同输入两次 run（不同 out-dir）→ 三个报告文件逐字节一致，fingerprint 集合也相等。"""
     _, run = golden_run
@@ -489,7 +509,7 @@ def test_renderers_only_read_run_result():
         assert literal in model_text, f"首屏字面不在 model.py 里（跑丢了？）: {literal}"
 
 
-def test_no_network_imports_in_package():
+def test_no_network_imports():
     """G10：`src/tripwire/**` 不 import 任何网络库（纯本地、零网络是红线）。"""
     forbidden = {"requests", "urllib", "http", "socket", "httpx", "aiohttp", "ftplib", "smtplib"}
     offenders = []
@@ -590,6 +610,37 @@ def test_report_refuses_without_truth(golden_run, tmp_path, capsys):
     err = capsys.readouterr().err
     assert "真值文件不可读" in err
     assert "GATE:" not in err
+
+
+def test_report_stage_index_selection(golden_run, capsys):
+    """`--stage-index` 指定判定阶段：合法的跑通，不存在的走用法通道（不产出报告）。"""
+    out_dir, run = golden_run
+    assert _report_cli(run, out_dir, ["--stage-index", "1"]) == exitcodes.LOSSY
+    assert capsys.readouterr().out.splitlines()[1].startswith(
+        "FIRST LOSS AT: stage 1 = json_sqlite_csv ("
+    )
+    assert _report_cli(run, out_dir, ["--stage-index", "9"]) == exitcodes.USAGE
+    assert "不在该 run 的输出里" in capsys.readouterr().err
+
+
+def test_report_refuses_malformed_truth(golden_run, tmp_path, capsys):
+    """真值文件**形状不对**也是 exit 3，不是 exit 1。
+
+    形状不对会让 `compute_gate` 抛未接住的异常 → 进程以 **1**（"有损"）退出——
+    那是"真值写错了"被读成"数据有损"的最坏形态。所以形状要在入口挡成用法通道。
+    """
+    out_dir, run = golden_run
+    bad = tmp_path / "bad_expected.json"
+    bad.write_text(
+        json.dumps({"cells": [{"rule": "leading_zero_lost", "p_after": {"pandas_csv": "1"}}]}, ensure_ascii=False)
+        + "\n",
+        encoding="utf-8",
+    )
+    code = _report_cli(run, out_dir, ["--expected", str(bad)])
+    captured = capsys.readouterr()
+    assert code == exitcodes.USAGE
+    assert "cell" in captured.err and "FAIL" in captured.err
+    assert "Traceback" not in captured.err, "形状错误不许漏成未接住异常（那会变成 exit 1）"
 
 
 def test_report_refuses_without_key(golden_run):

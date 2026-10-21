@@ -220,7 +220,7 @@ def _print_gate_notes(result) -> None:
         )
 
 
-def _print_report_tail(result, written, out_dir) -> None:
+def _print_report_tail(result, written) -> None:
     sys.stdout.write(
         f"REPORT  run_id {result.run_id}  pipeline {result.pipeline}  "
         f"stage {result.stage_index} ({result.stage_name})\n"
@@ -230,7 +230,6 @@ def _print_report_tail(result, written, out_dir) -> None:
     )
     for path in written:
         sys.stdout.write(f"      {path.name:<12} {path}\n")
-    sys.stdout.write(f"      out  {out_dir}\n")
 
 
 def _build_report(run, expected_path, key, align, stage_index):
@@ -306,7 +305,7 @@ def _cmd_run(
         _print_first_screen(result)
         _print_gate_notes(result)
         _print_pipeline_lines(run)
-        _print_report_tail(result, written, run.out_dir)
+        _print_report_tail(result, written)
         return result.exit_code
 
     _print_pipeline_lines(run)
@@ -325,6 +324,7 @@ def _print_pipeline_lines(run) -> None:
             f"      stage {snapshot.stage_index} = {snapshot.stage_name:<14} "
             f"rows {snapshot.rows}  cols {snapshot.cols}  sha256 {sha}\n"
         )
+    sys.stdout.write(f"      out  {run.out_dir}\n")
 
 
 def _cmd_report(
@@ -362,7 +362,7 @@ def _cmd_report(
     written = write_reports(result, run_dir, formats)
     _print_first_screen(result)
     _print_gate_notes(result)
-    _print_report_tail(result, written, run_dir)
+    _print_report_tail(result, written)
     return result.exit_code
 
 
