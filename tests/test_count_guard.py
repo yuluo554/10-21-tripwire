@@ -34,16 +34,33 @@ SELF = Path(__file__).name
 
 
 def _collect_count():
-    proc = subprocess.run(
-        [sys.executable, "-m", "pytest", "-o", "addopts=", "--collect-only", "-q"],
-        cwd=str(REPO_ROOT),
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        timeout=180,
-    )
-    m = re.search(r"(\d+) tests? collected", proc.stdout + proc.stderr)
-    assert m, "pytest --collect-only 没打印收集数：\n" + (proc.stdout + proc.stderr)[-800:]
+    """收集数（**不自己跑测试**，只 collect）。
+
+    ⚠ 这个子进程与本测试同 rootdir。实测（Windows）嵌套 pytest 与外层会话争用同一个
+    `.pytest_cache` 会**间歇性**失败（约 1/45 次，本机 hammer 复现过 1 次）。
+    这里显式禁掉缓存插件并把 `cache_dir` 指到临时目录 —— 收集数与缓存无关，排除掉它才是确定性判据。
+    `-p no:cacheprovider` 也顺带避免了"跑测试会改工作树"这一类副作用。
+    """
+    import tempfile
+
+    with tempfile.TemporaryDirectory(prefix="countguard-") as cache_dir:
+        proc = subprocess.run(
+            [
+                sys.executable, "-m", "pytest",
+                "-o", "addopts=",
+                "-p", "no:cacheprovider",
+                "-o", "cache_dir=%s" % cache_dir,
+                "--collect-only", "-q",
+            ],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=180,
+        )
+    out = proc.stdout + proc.stderr
+    m = re.search(r"(\d+) tests? collected", out)
+    assert m, "pytest --collect-only 没打印收集数（rc=%d）：\n%s" % (proc.returncode, out[-800:])
     return int(m.group(1))
 
 
