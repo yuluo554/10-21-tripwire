@@ -103,40 +103,58 @@
 
 ## 二、tag 后追加（本栏由 tag 之后的独立提交写入）
 
-> 本节待 `v0.1.1` 的 tag / Release / CI 真跑完成后回填。**不写预测值。**
+> 本节在 `v0.1.1` 的 tag / Release / CI 真跑完成后回填（2026-10-23）。**无预测值。**
+> 本节的提交**不属于 tag 树**，所以可以写 sha256 / OID 这类一进包就失效的字面值。
 
 ### 2.1 tag 与 Release
 
 | 项 | 值 |
 |---|---|
-| tag | 待回填（`v0.1.1`，annotated） |
-| tag 对象 OID | 待回填 |
-| tag 指向的 commit | 待回填（"v0.1.1 定版"那个提交） |
-| Release | 待回填（`isDraft=false` / `isPrerelease=false`） |
-| 附件 | 待回填（sdist / wheel / `SHA256SUMS` 三件的字节数） |
+| tag | `v0.1.1`（annotated；远端 `refs/tags/v0.1.1` 的 `object.type = "tag"`） |
+| tag 对象 OID | `39d14e9bf0e8c8e26cfbf2ca49f1776cc870d3d5` |
+| tag 指向的 commit | `df7e51238afdb6c36bdb2bce7a0378bbe2e4b200` |
+| Release | `isDraft=false` / `isPrerelease=false`；`--latest`（`/releases/latest` → `tag_name = v0.1.1`） |
+| 附件 | `tripwire-0.1.1.tar.gz` 259,560 B ／ `tripwire-0.1.1-py3-none-any.whl` 98,278 B ／ `SHA256SUMS` 186 B |
 
 ### 2.2 附件 digest（CI 生成，本机不产）
 
+CI `release-artifacts` job 的产物摘要（本机 `python -m build` 的字节**从未上传**）：
+
 ```
-待回填（release-artifacts job 的产物摘要；本机 build 的字节从不上传）
+ffad108e71dcc653e8eb54257674f748d7b0737a19d26260c5572e6253bea572  tripwire-0.1.1.tar.gz
+2776b9b6bfc1c52efc8b5925364586b1e40bb61d3eff90513b6d7a9c1eab0b95  tripwire-0.1.1-py3-none-any.whl
+f47d55fdeffa3742afb6509f750de80777fcbfcb75a7ce41fc618cb1a87bb9f4  SHA256SUMS
 ```
+
+**三方一致**：匿名下载件复算 ／ `SHA256SUMS` 内容 ／ GitHub `assets[].digest` 逐条相同。
 
 ### 2.3 CI run
 
 | run | 事件 | 结论 |
 |---|---|---|
-| 待回填 | `push main` | 待回填 |
-| 待回填 | `push v0.1.1`（tag） | 待回填 |
+| 39907408169 | `push main` | ✅ success（6 job：`methodology gates` + 4× `tests` + `release-artifacts` skipped） |
+| 39907461058 | `push v0.1.1`（tag） | ✅ success（6 job 全 success，含 `build release artifacts`） |
+
+**Node20 弃用注解 = 0 条**（6 job 的 `check-runs/*/annotations` 全扫）。余下注解只有
+`ubuntu-latest` 将迁 Ubuntu 26 的 notice——**非本迭代可消**，「四矩阵全绿」当前仍指 Ubuntu 24.04 镜像。
 
 ### 2.4 发布物复核（匿名通道）
 
 | 步 | 命令 | 结果 |
 |---|---|---|
-| 匿名可达 | `curl -s -o /dev/null -w "%{http_code}" -L <release asset url>` | 待回填 |
-| METADATA 形态 | `unzip -p <wheel> tripwire-0.1.1.dist-info/METADATA \| head -6` | 待回填（**期望含 `License-Expression: MIT`**） |
-| sdist 含新测试 | `tar tzf <sdist> \| grep test_license_metadata` | 待回填（期望有输出） |
-| 真下载 + 校验和 | `gh release download` → `sha256sum -c SHA256SUMS` | 待回填 |
-| 真装 + 真跑 | 全新 venv 装 wheel → `--version` / `rules --count` | 待回填（期望 `0.1.1` / `18`） |
+| 匿名可达 | `curl -s -L -H "Accept: application/octet-stream" <asset api url>` | HTTP 200；3 件 259,560 / 98,278 / 186 B |
+| METADATA 形态 | `unzip -p <wheel> tripwire-0.1.1.dist-info/METADATA \| head -6` | ✅ `Version: 0.1.1` + **`License-Expression: MIT`** + `License-File: LICENSE`（PEP 639 形态） |
+| sdist 含新测试 | `tar tzf <sdist> \| grep test_license_metadata` | ✅ 有输出（`tripwire-0.1.1/tests/test_license_metadata.py`） |
+| 真下载 + 校验和 | 匿名下载 3 件 → `sha256sum -c SHA256SUMS` | ✅ 两件 `OK` |
+| 真装 + 真跑 | 全新 py3.12 venv 装匿名下载的 wheel → 中立 CWD | ✅ `tripwire --version` = `tripwire 0.1.1`；`rules --count` = 18 |
+| sdist 解包树自足 | 解包 → `pytest -o addopts=""` | ✅ 206 passed / 21 skipped（227 collected；多出 2 条 skip = `ci.yml` 被 `prune .github` 排除，判据显式跳过并写明原因） |
+
+> ⚠ **本机网络限制（如实登记）**：`github.com` 主机与 `releases/download/...` 的 CDN 重定向
+> 在本机（直连，以及经开发机上常见的本机回环 HTTP 代理）**均超时**；
+> 而 `api.github.com` 与 `objects.githubusercontent.com` 可达。
+> 故匿名验收走 **API 资产通道**（`api.github.com/.../releases/assets/<id>` + `Accept: application/octet-stream`，
+> **不带任何 token**）——它同样匿名且不做 token 校验，结论等价。`gh release download` 的常规通道未在此机复跑。
+
 
 ---
 
