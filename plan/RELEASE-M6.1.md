@@ -155,6 +155,31 @@ f47d55fdeffa3742afb6509f750de80777fcbfcb75a7ce41fc618cb1a87bb9f4  SHA256SUMS
 > 故匿名验收走 **API 资产通道**（`api.github.com/.../releases/assets/<id>` + `Accept: application/octet-stream`，
 > **不带任何 token**）——它同样匿名且不做 token 校验，结论等价。`gh release download` 的常规通道未在此机复跑。
 
+### 2.5 tag 之后的提交（如实登记：`tests/` 一条，交付面零差异）
+
+tag 指向 `df7e512`（13:43:50）。之后落了两条提交，**均非交付面**：
+
+| commit | 时间 | 改动 | 定性 |
+|---|---|---|---|
+| `4c8d9fd` | 13:53:06 | `tests/test_count_guard.py`（嵌套 pytest 加 `-p no:cacheprovider` + 临时 `cache_dir`） | **非交付面**（`plan/05` §五 第 5 条明文允许 tag 后提交 `plan/`、`README.md`、`tools/`、`tests/`） |
+| `a0ea795` | 13:55:27 | `plan/RELEASE-M6.1.md`（即本节） | 非交付面（本节自身） |
+
+**交付面零差异**（`plan/05` §五 第 5 条的硬判据，实测）：
+
+```
+git diff --name-only v0.1.1..HEAD | grep -E "^(src/|rules.json|pipelines/|fixtures/)"
+→ 零输出（src / rules.json / pipelines / fixtures 全未动）
+git diff --name-only v0.1.1..HEAD   →  plan/RELEASE-M6.1.md、tests/test_count_guard.py 两件
+```
+
+⇒ **tag 合规，不重切**。`4c8d9fd` 是 test-only 的确定性改进（去掉缓存争用），
+不进 wheel（wheel 不含 `tests/`），进 sdist 但因上面这条纪律**不影响发布物契约**。
+
+⚠ **该提交对「flake」的定性未被我复现**（如实登记）：在已发布 sdist 的 bundled
+`test_count_guard.py`（= 无该 fix 的版本）上，串行 x15、以及「外层 + 嵌套同 rootdir 并发」x25，
+**0 次失败**。故「约 1/45 间歇」是**外部会话在同一 rootdir 下大规模并发**时的观测，
+本机稳态下复现不出。它的改动是**纯收益**（缓存与收集数无关），故保留。
+
 
 ---
 
@@ -165,7 +190,7 @@ f47d55fdeffa3742afb6509f750de80777fcbfcb75a7ce41fc618cb1a87bb9f4  SHA256SUMS
 | 出口门 | 状态 | 证据 / 不适用理由 |
 |---|---|---|
 | 发布物与代码同步（D1 的正面判据） | 实现 | §1.1 差异表；§1.3 D1 行；§2.4 的 METADATA 与 sdist 两条判据 |
-| 发布物本体已验（匿名通道） | 待首推 | §2.4：匿名 curl + 真下载 + `sha256sum -c` + 真装真跑 |
+| 发布物本体已验（匿名通道） | 实现 | §2.4：匿名 API 资产通道下载 3 件 → `sha256sum -c` OK → 全新 venv 真装 → 中立 CWD `--version`/`rules --count` |
 | 入仓工具在无 `.git` 树里能跑 | 实现 | §1.2：解包树两门 + 全量 pytest（`tools/` 与 `tests/` 都在 sdist 白名单里） |
 | 构建排在交付面定稿之后 | 实现 | 顺序 = 版本/文档/新测试定稿 → 全量测试（两档）→ 三门 → build → 装态验证 → tag |
 | 版本号单一来源由机器断言 | 实现 | `tests/test_skeleton.py::test_version_matches_pyproject`（`dynamic = ["version"]`）+ `test_readme_contract.py` 断言产物名带版本 |
@@ -175,7 +200,7 @@ f47d55fdeffa3742afb6509f750de80777fcbfcb75a7ce41fc618cb1a87bb9f4  SHA256SUMS
 | 计数差异逐项归因 | 实现 | §1.2 算术三行（两档 + 差值等于跳过数）；`tests/test_count_guard.py` 把这三行变成机检 |
 | 门自身可证伪（方法论装订硬约束③） | 实现 | §1.2 变异行 17/17 / 0 SKIP；CI 常驻（D3）；`AGENTS.md` 已列三门 |
 | 声明与验证范围一致（D5） | 实现 | `requires-python = ">=3.10,<3.13"` × CI `["3.10","3.12"]`；`tests/test_python_version_matrix.py` 双向守门 + 3 条负控已验红 |
-| CI 无 Node20 注解（D4） | 待首推 | §2.3：推送后 annotations 里 `Node.js 20 is deprecated` 计数须为 0 |
+| CI 无 Node20 注解（D4） | 实现 | §2.3：6 job 的 `check-runs/*/annotations` 全扫，`Node.js 20 is deprecated` 计数 = **0**（余下仅 `ubuntu-latest`→Ubuntu 26 的 notice） |
 | 未把 FAIL 降级成 WARN / 未减判据 | 实现 | §1.4：三道门的判据未动；19 条 Excel COM skip 保持原样；变异 17 组未减；`test_license_metadata.py` 保留 |
 | 已发布 tag 未被改写 | 实现 | `v0.1.0` 的 tag 对象与指向 commit 全程未动（§1.4 第 1 行） |
 | 发 PyPI | 不适用 | `plan/06` D5：PyPI 同名 404，本项目只发 GitHub Release |
