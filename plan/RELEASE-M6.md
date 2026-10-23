@@ -127,7 +127,8 @@ e8a4b7a415ec2f314ec7aaff119e8767b3682306340a06a04b562822ac9403db  tripwire-0.1.0
 | 39529702552 | `workflow_dispatch` | 全绿（用于"两次独立 CI 构建"的内容对账） |
 
 - **四矩阵一致**：ubuntu/windows × Python 3.10/3.12 —— 每个矩阵 **192 passed / 19 skipped / 0 failed**（总计 211 项收集）。
-  （v0.1.0 tag 时点真值；当时树内无 `tests/test_license_metadata.py`。v0.1.1 起为 218 收集 / 199+19，见 §1.2 后记。）
+  （v0.1.0 tag 时点真值；当时树内无 `tests/test_license_metadata.py`。v0.1.1 起的收集数与两档计数见
+  `plan/RELEASE-M6.1.md` §1.2 —— 不在本文写当前值，避免下次加测试时又漂。）
 - **19 条 skip 逐条可指认**：全部是 `excel_com_csv` 的声明式跳过（COM 仅 Windows，CI runner 无 Excel），`-rs` 每条带原因。
 - **首推即绿**：预留的"诊断+修复+再推"预算**未动用**（开发期前置工程到位：`eol=lf` / extras 装齐 / 平台无关写法）。
 - **push 数 = run 数**：2 次 push（main + tag）→ 2 次 run；tag push 因 `on: push` 未配 filters 而独立触发一轮（如实记录）。
