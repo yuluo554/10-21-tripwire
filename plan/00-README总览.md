@@ -4,7 +4,7 @@
 
 - **性质**：不参赛项目题 · 发布 GitHub **公开仓库** · 署名 yuluo554
 - **产出**：仓库 `10-21-tripwire`，CLI 入口 `tripwire`；**纯本地 Python CLI，零网络**
-- **状态**：**M5 完成（报告与 CI 出口）**；M0–M5 已收，M6 未开工。里程碑状态以 §六 表为准
+- **状态**：**M0–M6 全部 ✅，项目完结**（公开仓库 + `v0.1.0` + Release 附件 + 发布留档）。里程碑状态以 §六 表为准；发布状态以 Release 页为准
 - **定位宣言**："一份数据经过 CSV→Excel→JSON→SQLite 转一圈，哪些值悄悄变了？本工具给逐单元格差异 + 归因规则名 + 证据 + 出问题的环节。" 现有工具要么只做两文件单元格差异但不解释原因，要么只做单文件体检但不做往返对照。
 - **基准日**：2026-10-20（代理实际检索窗口 **2026-10-19T18:35Z–18:57Z**，UTC 仍在 10-19）
 
@@ -22,7 +22,8 @@
 | `plan/04-数据计划.md` | 三组样本池 / 真值覆盖口径 / 夹具 schema | ✅ v1（M0） |
 | `plan/05-里程碑与发布.md` | M0–M6 DoD / 出口门 / 依赖图 | ✅ v1（M0） |
 | `plan/06-交付对标与决策.md` | 提交材料对照 / 评分对照 / 风险登记 / 缺口表 | ✅ v1（M0） |
-| `plan/HANDOFF-M0.md` | M0 收尾交接单（七节） | ✅（M0） |
+| `plan/HANDOFF-M0.md` … `plan/HANDOFF-M6.md` | M0–M6 各棒收尾交接单（七节；续接入口 = 最新一份） | ✅（M0–M6） |
+| `plan/RELEASE-M6.md` | 发布留档（§一 tag 前事实 / §二 tag 后追加 / §三 阶段 7 覆盖对账） | ✅（M6） |
 | `AGENTS.md` | 方法论锚点 + 布局门命令 + 强制布局清单 | ✅（M0） |
 | `README.md`（仓库根） | 用户向：定位 / 快速开始 / 退出码 / 隐私 | ✅ v1（M5 补全用法与报告三格式） |
 | `docs/pipeline-schema.md` | 管线声明格式（阶段命名规则、禁止混称 Excel） | ✅（M1） |
@@ -43,7 +44,7 @@
 | **2026-10-20** | **D2·归因上限是"环节"，不是"代码行"** | 工具能证明"值在 stage 2 变成这样"，不能证明"是 openpyxl 的 `%.16g` 那一行"。写"代码行"是无法兑现的承诺；写入 README 与 `docs/rules.md` 的固定句。 |
 | **2026-10-20** | **D3·主键必须显式声明，无主键宁可拒绝运行** | 位置对齐遇插入行会雪崩式误报（daff / csvdiff 类工具的经典坑），而工具仍会报一个漂亮的差异数。故默认 `--align key`，未给 `--key` 即 exit 3，**不产出"0 差异"结论**。`position`/`lcs` 必须显式指定，且报告中标注所用策略。 |
 | **2026-10-20** | **D4·`unclassified` 是产品特性，不是缺陷** | 归因规则永远追不上所有失真形态；把它做成"一等公民 + `--fail-on unclassified`"可让 CI 主动拦新形态。**同时防"为清零而放宽规则导致误报"**：`control-lossless` 组是硬约束，precision 恒须 1.0（M4 门禁三数含 precision==1.0）。 |
-| **2026-10-20** | **D5·`tripwire` 可能与既有安全产品重名，发布前须查 PyPI 与 GitHub 同名仓库** | 已知有同名安全产品（Tripwire 是企业文件完整性监控产品）。**发布前必须核对 PyPI `tripwire` 与 GitHub 同名仓库**；若占用，发布名改为 `tripwire-audit` 或加前缀，并把改名决策记入本表（含新包名与旧名映射）。⬜ 待发布前执行。 |
+| **2026-10-20** | **D5·`tripwire` 可能与既有安全产品重名，发布前须查 PyPI 与 GitHub 同名仓库** | 已知有同名安全产品（Tripwire 是企业文件完整性监控产品）。**发布前必须核对 PyPI `tripwire` 与 GitHub 同名仓库**；若占用，发布名改为 `tripwire-audit` 或加前缀，并把改名决策记入本表（含新包名与旧名映射）。✅ 已执行（M6）：PyPI `tripwire` 与 `tripwire-audit` 均 404、GitHub `yuluo554/10-21-tripwire` 404 → 原名可用，未改名。 |
 | 2026-10-20 | **D6·快照存原始文本，不存 DataFrame** | 存 DataFrame 就等于在落盘时先做一次格式转换，比较前已经丢过一次信息——这会让审计器自己成为失真源。`stage-<k>.csv` 一律写原始文本，`stages.json` 只存元数据与哈希。 |
 | 2026-10-20 | **D7·`run_id` 由内容派生，不用时间戳** | `run_id = f(管线名, 输入哈希, 声明哈希)`，同输入重跑同 id，报告可跨机对账；`runs/` 被 `.gitignore` 排除，但 id 可复算。 |
 | 2026-10-20 | **D8·首期三族管线，四类数据通道** | CSV / XLSX（经 Excel 或 openpyxl）/ JSON / SQLite。**不含 YAML/TOML 配置通道**（避开配置 diff 题域），也不含 MessagePack（二期）。 |
@@ -100,7 +101,7 @@
 | stable fingerprint 跨 run diff | 设计 | 报告 JSON | `tests/test_report.py::test_fingerprint_stable_across_runs`（同输入两份独立 run 的 fingerprint 集合相等） | ✅ M5 |
 | 纯本地零网络 | 红线 | 无网络客户端依赖 | `tools/check_desensitized.py` 0 命中 + `tests/test_report.py::test_no_network_imports`（AST 扫描） | ✅ M5 |
 | 发布：tag + Release 附产物 + 发布留档三件套 | 发布纪律 | 公开仓库 | `tools/check_desensitized.py` 0 命中；`plan/RELEASE-M6.md` §覆盖对账无空项 | ✅ M6 |
-| 方法论装订（AGENTS + 布局门 + plan/00 顶部行） | `ai-tool-project-sprint` 硬约束③ | 纯本地脚本 | `python tools/check_sprint_layout.py` 全绿；`python tools/verify_gate_mutations.py` 17 组按预期（14 红 / 3 SKIP / 0 未按预期） | ✅ M0 |
+| 方法论装订（AGENTS + 布局门 + plan/00 顶部行） | `ai-tool-project-sprint` 硬约束③ | 纯本地脚本 | `python tools/check_sprint_layout.py` 全绿；`python tools/verify_gate_mutations.py` 17 组按预期（M6 后 17 红 / 0 SKIP / 0 未按预期；M6 前形态 14 红 / 3 SKIP） | ✅ M0 |
 | 脱敏门（本机路径 / 用户名 / 回环代理） | 发布纪律 | 纯本地脚本 | `python tools/check_desensitized.py` 0 命中且 4 组注入变异全红 | ✅ M0 |
 | 可运行骨架（CLI + 写盘单点 + 声明校验） | 设计 D11–D14 | 纯本地 | `tripwire --version` / `validate-pipeline` / `rules --count`；未实现子命令 exit 3 | ✅ M0 |
 
@@ -155,7 +156,7 @@
 
 | 里程碑 | 内容 | DoD（完成判据） | 状态 |
 |---|---|---|---|
-| **M0 · 计划与装订** | `plan/00–06` + `data/README` + `AGENTS.md` + 布局门 + 脱敏门 + 可运行骨架（CLI / 写盘单点 / 管线声明校验）+ 冒烟测试 | 布局门全绿且 10 组变异全红；脱敏门 0 命中且 4 组变异全红；`tripwire --help/--version/validate-pipeline/rules --count` 可运行；未实现子命令 exit 3；`pytest -q` 绿 | ✅ |
+| **M0 · 计划与装订** | `plan/00–06` + `data/README` + `AGENTS.md` + 布局门 + 脱敏门 + 可运行骨架（CLI / 写盘单点 / 管线声明校验）+ 冒烟测试 | 布局门全绿且 13 组变异全红（V1–V13）；脱敏门 0 命中且 4 组变异全红（D1–D4）；`tripwire --help/--version/validate-pipeline/rules --count` 可运行；未实现子命令 exit 3；`pytest -q` 绿 | ✅ |
 | **M1 · 数据先行** | 三族管线执行器 + `stages.json` + 逐段文本快照 + 运行时指纹。**先做 Excel COM 通道真机验证**（Windows），再补 `openpyxl_csv` 作为可跑的 fallback 通道（**两个不同 stage 名**） | 三条管线各跑通一次；`stages.json` 含每阶段列类型/行列数/内容哈希；`stage-<k>.csv` 为原始文本且哈希可复算；缺依赖时显式失败 | ✅ |
 | **M2 · 差异引擎** | 对齐三策略（`key` 默认 / `position` / `lcs`）+ 四项结构差异 + `--batch` dtype 漂移吸收 | 未给主键 exit 3；原型 9 差异可复现；差异排序稳定（两次运行逐字节一致） | ✅ |
 | **M3 · 归因规则** | 18 条四族规则 + 快照序列筛选 + `unclassified` 一等公民 + `--fail-on` | 原型 9/9 命中、unclassified=0；构造"同规则不同环节"用例 `resolved_stage` 不同；`--explain` 日志格式符合 `data/README` 口径 | ✅ |

@@ -29,9 +29,9 @@
 | 真下载复核 | ✅ | `gh release download` → `sha256sum -c` **两件均 OK** |
 | 附件 vs tag 树 | ✅ | 共有 **79 文件 / 0 差异**；两侧独有 3 + 8（构建/入包元数据，预期不同构） |
 | 从 tag 重建 | ✅ 内容级 | sdist 104 成员内容全等；wheel 成员内容全等。**字节级不等**（sdist 嵌 mtime）；wheel 在 `SOURCE_DATE_EPOCH` 固定下**字节可复现**（实测） |
-| 脱敏门 | ✅ | 0 命中（86 份文本，豁免 2 份） |
+| 脱敏门 | ✅ | 0 命中（87 份文本，豁免 2 份；公开 clone 81 份，差值 6 份 = `egg-info` 构建残留，见 `plan/RELEASE-M6.md` §2.6） |
 | 布局门 | ✅ | 全绿（文档 10 / 交接单 7 / 状态副本 4 / 点名工具 3） |
-| 门变异 | ✅ | 17 组：14 红 / 3 SKIP（M6 前形态）/ 0 未按预期 |
+| 门变异 | ✅ | 17 组：**17 红 / 0 SKIP / 0 未按预期**（M6 已 ✅，V11–V13 靶子存在；M6 前形态为 14 红 / 3 SKIP） |
 
 **发布 digest（CI 生成，本机不产）**：
 
@@ -149,7 +149,7 @@ M5 的十条仍然有效（见 `plan/HANDOFF-M5.md` §五）。M6 新增：
 - [x] `v0.1.0` annotated tag（远端 `object.type=tag`）；Release 附 sdist + wheel + `SHA256SUMS`；正文登记 digest
 - [x] tag 后只提交非交付面（`plan/`、`README.md`）；`src/`、`rules.json`、`pipelines/`、`fixtures/` 零差异
 - [x] 复核：真下载 + 中立目录 + `sha256sum -c`（两件 OK）+ 附件 vs tag 树共有 79 文件 0 差异
-- [x] 脱敏门 0 命中（86 份）；`plan/06` 关 G-6 / G-7
+- [x] 脱敏门 0 命中（87 份工作树 / 81 份公开 clone，差值已归因）；`plan/06` 关 G-6 / G-7
 - [x] 收尾：`plan/HANDOFF-M6.md`（七节）+ 4 处状态副本翻 ✅
 - [x] 布局门全绿 / 脱敏门 0 命中 / 变异 17 组按预期
 - [x] 全量测试：dev 211 passed / 干净 clone 192+19skip / sdist 解包 211 passed
