@@ -27,7 +27,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # 豁免面显式列在这里（不按前缀模糊跳过），并把份数打进结论行。
 SELF_EXEMPT = ("tools/check_desensitized.py", "tools/verify_gate_mutations.py")
 
-SKIP_DIRS = {".git", ".tmp", "dist", "dist-release", "node_modules", ".cache", ".venv", "venv", "build", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", "runs", "out"}
+SKIP_DIRS = {".git", ".tmp", "dist", "dist-release", "node_modules", ".cache", ".venv", "venv", "build", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", "runs", "out", "update"}
+# `update/` = 迭代交接物（诊断 / 路线 / 提示词 / 执行记录）。它与 `.tmp/`、`runs/` 同族：
+# 不是交付面、已进 .gitignore、发布树里根本不存在。而它的**用途**就是记录本机路径与命令，
+# 所以它必然命中 R1–R4——不排除就等于"门被自己的交接物判红"。
+# ⚠ 排除的是**目录**，不是判据：同一条泄漏搬进 plan/ docs/ src/ 仍会被 R1–R4 抓到（见变异组 D1–D4）。
 SKIP_EXTS = {
     ".png", ".jpg", ".jpeg", ".gif", ".ico", ".zip", ".gz", ".tar", ".exe", ".dll", ".pdf",
     ".woff", ".woff2", ".pyc", ".so", ".xlsx", ".xls", ".xlsm",
