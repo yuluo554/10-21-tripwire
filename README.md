@@ -29,7 +29,7 @@ GATE: recall 1.00 precision 1.00 unclassified 0
 
 > **本表记录的是开发里程碑**（随包快照，反映的是定版那一刻的状态），**不是发布状态**。
 > "这一版是否已发布 / CI 是否绿"以 **Release 页**为准——随包文档不该是发布状态的第一手来源。
-> 版本号：`tripwire 0.1.0`（唯一来源 `src/tripwire/__init__.py::__version__`）。
+> 版本号：`tripwire 0.1.1`（唯一来源 `src/tripwire/__init__.py::__version__`）。
 
 > 首期五模块已全部接线。可用子命令：`--help` / `--version` / `validate-pipeline` / `rules --count` /
 > `selftest` / `run`（可带 `--expected` 一路判到报告）/ `diff` / `attribute` /
@@ -171,15 +171,15 @@ python -m pytest -q
 ## 从 Release 复验
 
 发布附件由 CI 在 tag 上构建（`dist/` 三件：sdist、wheel、`SHA256SUMS`）。
-**产物名由 setuptools 规范化**，是下划线形态（`tripwire-0.1.0.tar.gz` / `tripwire-0.1.0-py3-none-any.whl`），
+**产物名由 setuptools 规范化**，是下划线形态（`tripwire-0.1.1.tar.gz` / `tripwire-0.1.1-py3-none-any.whl`），
 不是包名里的任何连字符写法——按文件名找，别按包名推。
 
 ```bash
-gh release download v0.1.0 --pattern "*" -D verify/
+gh release download v0.1.1 --pattern "*" -D verify/
 cd verify && sha256sum -c SHA256SUMS
 ```
 
-校验和的字面值登记在 `plan/RELEASE-M6.md` 与 Release 正文（**由 CI 生成，本机不产**）。
+校验和的字面值登记在 `plan/RELEASE-M6.1.md` 与 Release 正文（**由 CI 生成，本机不产**）。
 
 ## 许可
 

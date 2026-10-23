@@ -38,10 +38,16 @@
 | `tests/test_python_version_matrix.py` | 新增（6 条）：`requires-python` 与 CI 矩阵双向一致 + 上界必须真跑过 + 3 条负控 | D5 的守门（否则下次又漂） |
 | `tests/test_count_guard.py` | 新增（3 条）：收集数与本文档登记值对撞 + 两口径算术自洽 + 当前计数不许散落到别的 plan 文档 | 防自述计数漂移 |
 | `tools/check_desensitized.py` | `SKIP_DIRS` 加 `update` | `update/` 是迭代交接物，必然记录本机路径；排除的是**目录**不是判据 |
-| `plan/02`、`plan/05`、`plan/06`、`plan/00`、`plan/01`、`plan/HANDOFF-M6.md`、`plan/RELEASE-M6.md` | 状态回写 + 历史计数加时点标注 + M6.1 留档 | 非交付面，`plan/05` §五 第 5 条允许 |
+| `fixtures/golden/expected.json`、`manifest.json` | `generator_version` `0.1.0` → `0.1.1`（`manifest` 另随 `files.expected.json` 自指 sha256 变一行）；**`orig.csv` 逐字节不变** | `GENERATOR_VERSION = __version__` 是硬耦合，抬版本必须重生成（`plan/04` §`manifest.json` 已写明） |
+| `plan/02`、`plan/04`、`plan/05`、`plan/06`、`plan/00`、`plan/01`、`plan/HANDOFF-M6.md`、`plan/RELEASE-M6.md` | 状态回写 + 历史计数加时点标注 + M6.1 留档 + 金样本重生成纪律说明 | 非交付面，`plan/05` §五 第 5 条允许 |
 
-> **`src/tripwire/**` 的判定引擎逻辑零改动**：只有 `__init__.py` 的版本号与上面两个新测试文件。
-> 18 条归因规则、退出码语义、`fixtures/golden/**` 全部未动（本迭代 §五 明确不做）。
+> **`src/tripwire/**` 的判定引擎逻辑零改动**：只有 `__init__.py` 的版本号与两个新测试文件。
+> 18 条归因规则、退出码语义、`fixtures/golden/orig.csv`（金样本输入字节）全部未动。
+>
+> **金样本重生成不是"动金样本"**：`orig.csv` 逐字节不变，改的只是 `generator_version` 这个**自指字段**；
+> 且用的是仓内官方 `gen-fixture`（非手改），重生成后 README 首屏示例仍逐字一致
+> （`VERDICT: LOSSY (45/1600 cells, 3 rules)` / `FIRST LOSS AT: stage 1 = json_sqlite_csv (SQLite 3.49.1)`
+> / `GATE: recall 1.00 precision 1.00 unclassified 0`），判定能力未受影响。
 
 ### 1.2 定版提交前的实测（本机，2026-10-23 · **`v0.1.1` 时点快照**）
 

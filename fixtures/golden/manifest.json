@@ -1,9 +1,9 @@
 {
   "files": {
-    "expected.json": "454717cd2c4803580fdd815c9700f134473994ed80061068a1bc54efba95fa97",
+    "expected.json": "922652decfef78adb20c7b4b56f9c19d56864c4a55448d6fd61d647eac1614c2",
     "orig.csv": "cde927cb7596ecdc882c12daf0020fcc4b102d8b86ce4369a7df610346dfcaf4"
   },
-  "generator_version": "0.1.0",
+  "generator_version": "0.1.1",
   "pools": {
     "canary-numeric": 60,
     "canary-semantic": 80,
