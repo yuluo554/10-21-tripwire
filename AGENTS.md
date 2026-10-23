@@ -7,9 +7,10 @@
 ```bash
 python tools/check_sprint_layout.py    # 布局门；必须绿，红了先修布局再干活
 python tools/check_desensitized.py     # 脱敏门；发布前必须 0 命中
+python tools/verify_gate_mutations.py  # 变异门；前两道门的判据自己可证伪（17 组必须全红、0 SKIP）
 ```
 
-- 续接对话：读 `plan/HANDOFF-M<k>.md`（第 k 棒的收尾交接单），**先跑上面两条门**。
+- 续接对话：读 `plan/HANDOFF-M<k>.md`（第 k 棒的收尾交接单），**先跑上面三条门**。
 - 接手对话（无 HANDOFF）：先读 `plan/00`、`plan/05`、`plan/06` 与各 HANDOFF，重建"当前状态 + K 口径清单"再动手。
 - **门不存在 = 本项目没装订** → 先补第零步三件（`AGENTS.md` + 布局门 + `plan/00` 顶部装订行），再做别的。
 
@@ -24,6 +25,7 @@ python tools/check_desensitized.py     # 脱敏门；发布前必须 0 命中
 | 缺口表 | `plan/06` §四 | 不得再提已 ✅ 的里程碑（只描述、不点名文件） |
 | 发布留档 | `plan/RELEASE-M6.md`（两栏 + 覆盖对账）或 `plan/WRAPUP-M6.md` | 发布里程碑 ✅ 后必须存在 |
 | 文档点名的工具 | 任何 `tools/*.py` 形式的引用 | `git ls-files` 指得到实物 |
+| 门自身可证伪 | `tools/verify_gate_mutations.py`（17 组） | 布局门 13 组 + 脱敏门 4 组，**全红且 0 未按预期**；CI 常驻（methodology gates job） |
 
 ## 环境事实与禁忌
 
@@ -38,6 +40,7 @@ python tools/check_desensitized.py     # 脱敏门；发布前必须 0 命中
 | --- | --- |
 | 布局门 | `py -3.12 tools/check_sprint_layout.py` |
 | 脱敏门 | `py -3.12 tools/check_desensitized.py` |
+| 变异门 | `py -3.12 tools/verify_gate_mutations.py` |
 | 测试 | `py -3.12 -m pytest -q` |
 | CLI 冒烟 | `py -3.12 -m tripwire --version` |
 | 管线声明校验 | `py -3.12 -m tripwire validate-pipeline pipelines/pandas.json` |

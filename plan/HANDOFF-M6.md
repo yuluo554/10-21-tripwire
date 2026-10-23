@@ -18,12 +18,12 @@
 | README 输入可跑性 | ✅ | 原稿 `sample.csv`/`a.csv`/`b.csv` **仓库里从未存在**；改为 `fixtures/golden/orig.csv` + `runs/<run_id>/stage-<k>.csv` |
 | README 契约守门 | ✅ | `tests/test_readme_contract.py`（4 条）；**3 组变异已验红**（不存在的管线路径 / 产物名连字符 / report 缺 `--expected`） |
 | 干净 clone 逐条实测 | ✅ | 中立目录 `git clone --no-local --depth 1` + 全新 venv → README **14 条命令逐条退出码**（§RELEASE-M6 §1.3） |
-| sdist 自足 | ✅ | 解包树（无 `.git`）两门全绿 + **211 passed** |
+| sdist 自足 | ✅ | 解包树（无 `.git`）两门全绿 + **211 passed**（v0.1.0 时点；当前树值见 `plan/RELEASE-M6.1.md` §1.2） |
 | wheel 中立 CWD | ✅ | 只装 wheel、仓库外跑 `run --expected`：首屏三段正确，exit 1 |
 | 发布留档（tag 前落盘） | ✅ | `plan/RELEASE-M6.md` 两栏 + §三 阶段 7 覆盖对账（三态，24–25 行） |
 | 发布留档门可证伪 | ✅ | 把 M6 临时翻 ✅ 后跑变异：**17 组全部按预期红，0 SKIP，0 未按预期** |
 | 公开仓库 | ✅ | `https://github.com/yuluo554/10-21-tripwire`（公开） |
-| CI 首跑（G-6） | ✅ | 3 个 run 全绿；四矩阵各 **192 passed / 19 skipped / 0 failed** |
+| CI 首跑（G-6） | ✅ | 3 个 run 全绿；四矩阵各 **192 passed / 19 skipped / 0 failed**（v0.1.0 时点；当前树值见 `plan/RELEASE-M6.1.md` §1.2） |
 | tag（G-7） | ✅ | `v0.1.0` **annotated**；远端 `git/refs/tags/v0.1.0` → `object.type = "tag"` |
 | Release + 附件 | ✅ | `isDraft=false`；3 附件（sdist 238736 B / wheel 98142 B / `SHA256SUMS` 186 B） |
 | 真下载复核 | ✅ | `gh release download` → `sha256sum -c` **两件均 OK** |
@@ -65,7 +65,7 @@ M5 的 48 条仍然全部有效（见 `plan/HANDOFF-M5.md` §二），下面只�
 52. **`release-artifacts` 的触发条件**：`startsWith(github.ref, 'refs/tags/v')` 或 `workflow_dispatch`。
     分支 push 不产发布物（首推那次该 job 显示 skipped 是**正确**的，不是失败）。
 53. **CI 的 `pytest -q` 与 `pyproject` 的 `addopts = "-q"` 叠加成 `-qq` → 摘要行不打印**。
-    要数 passed/skipped，从日志里数进度行的 `.`/`s`/`F`（本棒实测：四矩阵各 192/19/0）。
+    要数 passed/skipped，从日志里数进度行的 `.`/`s`/`F`（本棒实测：四矩阵各 192/19/0 —— v0.1.0 时点值）。
 54. **`selftest` 按 CWD 相对路径找 `pipelines/`**：装 wheel 后在仓库外跑会报「缺管线声明」。
     README「已知环境问题」已登记。**别为了消掉它把 selftest 改成包内找**——那会改变
     "随包声明与仓库声明一致"这条判据的语义（要改就单独立项，并补测试）。
@@ -145,14 +145,15 @@ M5 的十条仍然有效（见 `plan/HANDOFF-M5.md` §五）。M6 新增：
 - [x] 提交元数据邮箱全为 noreply（无需历史重写）
 - [x] `plan/RELEASE-M6.md` **在 tag 之前**写好并进 tag 树（§一 tag 前事实 / §二 tag 后追加 / §三 阶段 7 覆盖对账 三态）
 - [x] `python -m build` 产 sdist + wheel（本机验证用）；**`SHA256SUMS` 只由 CI 生成**
-- [x] 首次推远端 → CI 真跑（G-6）：3 run 全绿；四矩阵各 192/19/0；`excel_com_csv` skip 并标注
+- [x] 首次推远端 → CI 真跑（G-6）：3 run 全绿；四矩阵各 192/19/0（v0.1.0 时点值）；`excel_com_csv` skip 并标注
 - [x] `v0.1.0` annotated tag（远端 `object.type=tag`）；Release 附 sdist + wheel + `SHA256SUMS`；正文登记 digest
 - [x] tag 后只提交非交付面（`plan/`、`README.md`）；`src/`、`rules.json`、`pipelines/`、`fixtures/` 零差异
 - [x] 复核：真下载 + 中立目录 + `sha256sum -c`（两件 OK）+ 附件 vs tag 树共有 79 文件 0 差异
 - [x] 脱敏门 0 命中（87 份工作树 / 81 份公开 clone，差值已归因）；`plan/06` 关 G-6 / G-7
 - [x] 收尾：`plan/HANDOFF-M6.md`（七节）+ 4 处状态副本翻 ✅
 - [x] 布局门全绿 / 脱敏门 0 命中 / 变异 17 组按预期
-- [x] 全量测试：dev 211 passed / 干净 clone 192+19skip / sdist 解包 211 passed
+- [x] 全量测试：dev 211 passed / 干净 clone 192+19skip / sdist 解包 211 passed（**均为 v0.1.0 时点值**；
+      9c5710f 新增 `tests/test_license_metadata.py` 7 条 ⇒ 计数上移，当前值见 `plan/RELEASE-M6.1.md` §1.2）
 - [x] README 契约守门落地（4 条 + 3 组变异验红）
 
 ---

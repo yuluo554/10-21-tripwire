@@ -23,7 +23,7 @@
 | `SHA256SUMS` 生成者 | **CI 的 `release-artifacts` job**（`plan/06` R7：本机不产校验和） |
 | 许可证 | MIT |
 
-### 1.2 定版提交前的实测（本机，2026-10-21）
+### 1.2 定版提交前的实测（本机，2026-10-21 · **`v0.1.0` 时点快照**）
 
 | 检查 | 命令 | 结果 |
 |---|---|---|
@@ -36,6 +36,15 @@
 | sdist 自足 | 解包树里跑两条门 | 布局门全绿 / 脱敏门 0 命中 |
 | wheel 安装 | 全新 venv → `pip install <wheel>` | `--version` = `0.1.0`；`rules --count` = 18（包内 `rules.json` 可读）；`report` 在 `--help` 里 |
 | 中立 CWD 全链 | 只装 wheel，在仓库外跑 `run --expected` | 首屏三段正确，exit 1（LOSSY 45/1600） |
+
+> **本节数字是 `v0.1.0` 定版时点的真值，不是当前树的真值。**（2026-10-23 复核追加）
+> 解出 tag 树实测：`git archive v0.1.0 | tar -x` → `pytest --collect-only -q` = **211 tests collected**，
+> 树内**没有** `tests/test_license_metadata.py`。所以 211 / 192+19 在本节是对的，改成 218 反而会假。
+> 当前树（`main` @ 9c5710f 之后）的实测计数**只登记在 `plan/RELEASE-M6.1.md` §1.2 一处**
+> （散落多处必然在下次加测试时漂移，本仓已有自指守门 `tests/test_count_guard.py` 拦这件事）。
+> 差值来源 = 9c5710f 新增的 `tests/test_license_metadata.py`（**7 条**：211+7=218、192+7=199，这是算术，不是实测值）。
+> 同一份快照的另一处旁证：本节布局门写「交接单 **6**」——第 7 份是 tag 之后 `df8d7da` 才加的 `HANDOFF-M6.md`。
+> v0.1.1 的定版真值记在 `plan/RELEASE-M6.1.md` §1.2。
 
 ### 1.3 README 逐条实测（干净 clone + 全新 venv，2026-10-21）
 
@@ -118,9 +127,14 @@ e8a4b7a415ec2f314ec7aaff119e8767b3682306340a06a04b562822ac9403db  tripwire-0.1.0
 | 39529702552 | `workflow_dispatch` | 全绿（用于"两次独立 CI 构建"的内容对账） |
 
 - **四矩阵一致**：ubuntu/windows × Python 3.10/3.12 —— 每个矩阵 **192 passed / 19 skipped / 0 failed**（总计 211 项收集）。
+  （v0.1.0 tag 时点真值；当时树内无 `tests/test_license_metadata.py`。v0.1.1 起为 218 收集 / 199+19，见 §1.2 后记。）
 - **19 条 skip 逐条可指认**：全部是 `excel_com_csv` 的声明式跳过（COM 仅 Windows，CI runner 无 Excel），`-rs` 每条带原因。
 - **首推即绿**：预留的"诊断+修复+再推"预算**未动用**（开发期前置工程到位：`eol=lf` / extras 装齐 / 平台无关写法）。
 - **push 数 = run 数**：2 次 push（main + tag）→ 2 次 run；tag push 因 `on: push` 未配 filters 而独立触发一轮（如实记录）。
+- **镜像口径**：`ubuntu-latest` / `windows-latest` 都是**浮动标签**，具体镜像版本随 GitHub 侧迁移而变，
+  本留档不给镜像版本号（给了就会在下次迁移时变成假话）。已知信号：ubuntu-latest **2026-10-19 起迁 Ubuntu 26**，
+  CI 注解里会出现 notice；v0.1.0 的三个 run 都建立在该迁移窗口附近，结论是绿的（见上表 run id 可复查）。
+  需要"钉死镜像"的场合另说（本仓未钉，`runs-on` 用的就是浮动标签）。
 
 ### 2.4 发布物复核（G-7 关闭）
 
@@ -167,7 +181,7 @@ e8a4b7a415ec2f314ec7aaff119e8767b3682306340a06a04b562822ac9403db  tripwire-0.1.0
 | clone | `git clone --depth 1 https://github.com/yuluo554/10-21-tripwire.git` | ✅ |
 | 布局门 | `python tools/check_sprint_layout.py` | ✅ 全绿（交接单 7 / 状态副本 4） |
 | 脱敏门 | `python tools/check_desensitized.py` | ✅ 0 命中（81 份，见 §2.6） |
-| 全量测试 | 全新 venv + `pip install -e ".[dev]"` → `pytest` | ✅ **192 passed / 19 skipped**（与 CI 四矩阵一致） |
+| 全量测试 | 全新 venv + `pip install -e ".[dev]"` → `pytest` | ✅ **192 passed / 19 skipped**（与 CI 四矩阵一致；v0.1.0 tag 时点值，当前树值见 `plan/RELEASE-M6.1.md` §1.2） |
 
 ---
 
@@ -184,7 +198,7 @@ e8a4b7a415ec2f314ec7aaff119e8767b3682306340a06a04b562822ac9403db  tripwire-0.1.0
 | README 前置条件单列成节 | 实现 | `README.md`「安装」三行前置（venv / `python -m pip` 而非 `py`）+「已知环境问题」表 |
 | 留档第三栏自指约束（不写 tag OID / sha / 包哈希） | 实现 | 本文顶部自指约束；§二 用自指表述「含本记录完整内容的那个提交」 |
 | 附件与 tag 树逐字节同源（共有文件比对 + 两侧独有集合点名） | 实现 | §2.4：共有 **79 文件 / 0 差异**；两侧独有集合逐项点名（3 + 8，全是构建/入包元数据）。**字节级**复现的边界见 §2.4 末尾（sdist 嵌 mtime，wheel 在 `SOURCE_DATE_EPOCH` 下可字节复现） |
-| 源码包自足（`MANIFEST.in` 白名单） | 实现 | `MANIFEST.in` 白名单 + 解包树两门全绿 + 211 passed：§1.2 |
+| 源码包自足（`MANIFEST.in` 白名单） | 实现 | `MANIFEST.in` 白名单 + 解包树两门全绿 + 211 passed（v0.1.0 时点；当前树值见 `plan/RELEASE-M6.1.md` §1.2）：§1.2 |
 | 构建排在交付面定稿之后 | 实现 | 顺序 = 版本/夹具/README 定稿 → 全量测试 → build → 双装态验证 → tag |
 | README 提到的附件名真在 Release 里 | 实现 | `tests/test_readme_contract.py::test_readme_artifact_names_match_setuptools_normalization`（下划线形态；变异已验红） |
 | 对外样例产物在中立示意目录生成 | 不适用 | 本项目不发布样例报告产物；`runs/` 是运行产物且被 gitignore，附件只有 sdist/wheel |
@@ -194,8 +208,8 @@ e8a4b7a415ec2f314ec7aaff119e8767b3682306340a06a04b562822ac9403db  tripwire-0.1.0
 | 随包 README 状态行不承载发布状态 | 实现 | README 状态表加注「本表记录开发里程碑，不是发布状态；发布状态以 Release 页为准」 |
 | DoD 打勾只在事实落地后 | 实现 | §一 全部有实测行；§二 在 tag 后才回填（tag 树内那版 §二 是待回填骨架） |
 | 脱敏四步 + 产物本体扫描 | 实现 | §1.4 五步；产物扫描 39 成员 0 命中 |
-| CI 首跑（G-6） | 实现 | §2.3：3 个 run 全绿；四矩阵各 192 passed / 19 skipped / 0 failed；skip 逐条指认到 Excel COM 声明式跳过 |
+| CI 首跑（G-6） | 实现 | §2.3：3 个 run 全绿；四矩阵各 192 passed / 19 skipped / 0 failed（v0.1.0 时点）；skip 逐条指认到 Excel COM 声明式跳过 |
 | tag + Release + 附件（G-7） | 实现 | §2.1：annotated tag（远端 `object.type=tag`）+ Release `isDraft=false` + 3 附件；§2.4 真下载复核通过 |
-| 计数差异逐项归因（dev vs 干净环境 vs CI） | 实现 | dev 211 / 干净 clone 192+19skip / sdist 解包 211 / 公开仓库 clone 192+19skip；19 条 skip 逐条指认到 Excel COM 声明式跳过；**脱敏门扫描面 87 vs 81 的差值也逐项归因**（§2.6） |
+| 计数差异逐项归因（dev vs 干净环境 vs CI） | 实现 | dev 211 / 干净 clone 192+19skip / sdist 解包 211 / 公开仓库 clone 192+19skip（**全为 v0.1.0 时点值**）；19 条 skip 逐条指认到 Excel COM 声明式跳过；**脱敏门扫描面 87 vs 81 的差值也逐项归因**（§2.6）。v0.1.1 起的计数与差值来源见 §1.2 后记 |
 | 零网络声明可核验 | 实现 | `tests/test_report.py::test_no_network_imports`（AST 扫包内全部 .py）；wheel 产物扫描 0 网络客户端 |
 | 缓议项清零 | 实现 | `plan/06` §五 Q1–Q5 全部「保持」，无悬空项 |

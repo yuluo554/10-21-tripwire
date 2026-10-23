@@ -15,14 +15,18 @@ jobs:
     name: methodology gates
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: "Sprint layout gate (methodology binding)"
         run: python tools/check_sprint_layout.py
       - name: "Desensitization gate (no host paths / usernames / local proxy)"
         run: python tools/check_desensitized.py
+      # 门本身可证伪：前两道门若有"永远绿"的判据，这一步会红。
+      # stdlib-only（只用 os/re/shutil/subprocess/sys/tempfile/pathlib），不需要 pip install。
+      - name: "Gate mutation gate (17 mutations must go red)"
+        run: python tools/verify_gate_mutations.py
 
   tests:
     name: tests py${{ matrix.python-version }} ${{ matrix.os }}
@@ -31,13 +35,15 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+        # 与 pyproject 的 requires-python = ">=3.10,<3.13" 对齐（tests/test_python_version_matrix.py 断言）。
+        # 改这里就必须同轮改 pyproject，反之亦然 —— 否则测试红。
         python-version: ["3.10", "3.12"]
     env:
       PYTHONUTF8: "1"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install
@@ -59,8 +65,8 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install build backend
@@ -85,7 +91,7 @@ jobs:
           "$RUNNER_TEMP/venv/bin/python" -m pip install dist/*.whl
           "$RUNNER_TEMP/venv/bin/tripwire" --version
           "$RUNNER_TEMP/venv/bin/tripwire" rules --count
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-dist
           path: dist/*
