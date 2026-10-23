@@ -114,7 +114,22 @@ def audit_matrix(pyproject_text, ci_text):
 # ---- 对真实仓文件的断言 ----
 
 
+def _require_ci_file():
+    """`ci.yml` 只在仓库树里存在：`MANIFEST.in` 有 `prune .github`（`plan/02`：CI 只对仓库有意义），
+    所以 sdist 解包树里拿到它是不合理的——那里显式 SKIP 并写明原因，不让 sdist 变红。
+
+    但**有 `.git` 的树里缺 `ci.yml` 就是真缺陷**（有人在检出的仓库里删了 CI，判据不能静默消失），
+    所以那种情况照样红。
+    """
+    if CI.is_file():
+        return
+    if (REPO_ROOT / ".git").exists():
+        pytest.fail("仓库树里找不到 .github/workflows/ci.yml —— 判据无法落地（不是 sdist 场景）")
+    pytest.skip("sdist 解包树不含 .github/（MANIFEST.in prune .github），本判据只在仓库树成立")
+
+
 def test_repo_requires_python_matches_ci_matrix():
+    _require_ci_file()
     problems = audit_matrix(
         PYPROJECT.read_text(encoding="utf-8"), CI.read_text(encoding="utf-8")
     )
@@ -123,6 +138,7 @@ def test_repo_requires_python_matches_ci_matrix():
 
 def test_ci_matrix_line_is_parseable():
     """矩阵格式变了（比如改成 include: 形态）必须立刻红，而不是静默返回空列表。"""
+    _require_ci_file()
     versions = parse_ci_matrix(CI.read_text(encoding="utf-8"))
     assert len(versions) >= 2, "CI 矩阵解析出 %r，期望至少两格" % (versions,)
 
